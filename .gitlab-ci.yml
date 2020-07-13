@@ -1,0 +1,61 @@
+---
+image: docker:stable
+
+stages:
+  - provision
+  - test
+  - teardown
+
+spin-up-bigip:
+  image: artifactory.f5net.com/ecosystems-cloudsolutions-docker-dev/dewdrop:stable
+  stage: provision
+  tags:
+    - cm-official-docker-executor
+  script:
+    - python scripts/azure_login.py
+    - az group create --location westus --name ansible-$CI_PIPELINE_ID --tags creator=ansible-test delete=True
+    - scripts/create_deployment.sh
+    - F5_IP=$(az network public-ip list -g ansible-$CI_PIPELINE_ID --output json | jq .[0].ipAddress --raw-output)
+    - echo "export F5_SERVER=$F5_IP">tmp/host
+  artifacts:
+    paths:
+     - tmp/host
+  only:
+    - merge_requests
+
+test-changes:
+  stage: test
+  tags:
+    - azure-autoscale-runner
+  script:
+    - apk update && apk add --no-cache
+      python3-dev py3-pip gcc git curl build-base
+      autoconf automake py3-cryptography linux-headers
+      musl-dev libffi-dev openssl-dev openssh bash
+    - pip install molecule==2.20 --ignore-installed six
+    - pip install docker
+    - pip install invoke
+    - ansible --version
+    - molecule --version
+    - docker -v
+    - source tmp/host
+    - env | grep 'F5_SERVER'
+    - inv test.all
+  dependencies:
+    - spin-up-bigip
+  only:
+    - merge_requests
+
+teardown-bigip:
+  image: artifactory.f5net.com/ecosystems-cloudsolutions-docker-dev/dewdrop:stable
+  stage: teardown
+  tags:
+    - cm-official-docker-executor
+  script:
+   - python scripts/azure_login.py
+   - az group delete --verbose --no-wait -n ansible-$CI_PIPELINE_ID --yes
+  dependencies:
+    - spin-up-bigip
+  only:
+    - merge_requests
+  when: always

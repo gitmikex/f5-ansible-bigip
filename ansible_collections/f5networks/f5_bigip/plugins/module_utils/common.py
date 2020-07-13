@@ -19,20 +19,12 @@ from ansible.module_utils.parsing.convert_bool import (
 )
 from collections import defaultdict
 
-try:
-    from ansible_collections.ansible.netcommon.plugins.module_utils.network.common.config import (
-        NetworkConfig, ConfigLine, ignore_line
-    )
-    from ansible_collections.ansible.netcommon.plugins.module_utils.network.common.utils import (
-        to_list, ComplexList
-    )
-except ImportError:
-    from ansible.module_utils.network.common.config import (
-        NetworkConfig, ConfigLine, ignore_line
-    )
-    from ansible.module_utils.network.common.utils import (
-        to_list, ComplexList
-    )
+from ansible_collections.ansible.netcommon.plugins.module_utils.network.common.config import (
+    NetworkConfig, ConfigLine, ignore_line
+)
+from ansible_collections.ansible.netcommon.plugins.module_utils.network.common.utils import (
+    to_list, ComplexList
+)
 
 from ansible_collections.f5networks.f5_bigip.plugins.module_utils.constants import (
     MANAGED_BY_ANNOTATION_VERSION, MANAGED_BY_ANNOTATION_MODIFIED

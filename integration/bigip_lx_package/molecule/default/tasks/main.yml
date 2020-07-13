@@ -1,0 +1,83 @@
+---
+- name: Create LX package
+  bigip_lx_package:
+    package: "{{ scenario_dir }}/files/MyApp-0.1.0-0001.noarch.rpm"
+    state: present
+  register: result
+
+- name: Assert Create LX package
+  assert:
+    that:
+      - result is changed
+
+- name: Create LX package - Idempotent check
+  bigip_lx_package:
+    package: "{{ scenario_dir }}/files/MyApp-0.1.0-0001.noarch.rpm"
+    state: present
+  register: result
+
+- name: Assert Create LX package - Idempotent check
+  assert:
+    that:
+      - result is not changed
+
+- name: Delete LX package
+  bigip_lx_package:
+    package: "{{ scenario_dir }}/files/MyApp-0.1.0-0001.noarch.rpm"
+    state: absent
+  register: result
+
+- name: Assert Delete LX package
+  assert:
+    that:
+      - result is changed
+
+- name: Delete LX package - Idempotent check
+  bigip_lx_package:
+    package: "{{ scenario_dir }}/files/MyApp-0.1.0-0001.noarch.rpm"
+    state: absent
+  register: result
+
+- name: Assert Create LX package - Idempotent check
+  assert:
+    that:
+      - result is not changed
+
+- name: Create LX package
+  bigip_lx_package:
+    package: "{{ scenario_dir }}/files/MyApp-0.1.0-0001.noarch.rpm"
+    state: present
+  register: result
+
+- name: Assert Create LX package
+  assert:
+    that:
+      - result is changed
+
+- name: Delete LX package, file does not exist
+  bigip_lx_package:
+    package: MyApp-0.1.0-0001.noarch.rpm
+    state: absent
+  register: result
+
+- name: Assert Delete LX package, file does not exist
+  assert:
+    that:
+      - result is changed
+
+- name: Delete LX package, file does not exist - Idempotent check
+  bigip_lx_package:
+    package: MyApp-0.1.0-0001.noarch.rpm
+    state: absent
+  register: result
+
+- name: Assert Delete LX package, file does not exist - Idempotent check
+  assert:
+    that:
+      - result is not changed
+
+- import_tasks: issue-00730.yaml
+  tags: issue-00730
+
+- import_tasks: issue-01717.yaml
+  tags: issue-01717

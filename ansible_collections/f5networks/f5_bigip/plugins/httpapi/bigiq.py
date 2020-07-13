@@ -115,22 +115,30 @@ class HttpApi(HttpApiBase):
         data = json.dumps(body) if body else None
 
         try:
-            self._display_request(method, url)
+            self._display_request(method, url, body)
             response, response_data = self.connection.send(url, data, method=method, **kwargs)
             response_value = self._get_response_value(response_data)
             return dict(
                 code=response.getcode(),
                 contents=self._response_to_json(response_value),
-                headers=response.headers
+                headers=response.getheaders()
             )
 
         except HTTPError as e:
             return dict(code=e.code, contents=json.loads(e.read()))
 
-    def _display_request(self, method, data):
-        self.connection._log_messages(
-            'BIG-IQ API Call: {0} {1} with data {2}'.format(method, self.connection._url, data)
-        )
+    def _display_request(self, method, url, data=None):
+        if data:
+            self._display_message(
+                'BIG-IQ API Call: {0} to {1} with data {2}'.format(method, url, data)
+            )
+        else:
+            self._display_message(
+                'BIG-IQ API Call: {0} to {1}'.format(method, url)
+            )
+
+    def _display_message(self, msg):
+        self.connection._log_messages(msg)
 
     def _get_response_value(self, response_data):
         return to_text(response_data.getvalue())

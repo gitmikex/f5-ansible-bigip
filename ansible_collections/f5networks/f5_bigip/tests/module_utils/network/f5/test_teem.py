@@ -117,14 +117,14 @@ class TestTeemClient(TestCase):
 
         self.connection.httpapi._display_message.assert_any_call('TEEM Data sent successfully.')
         assert self.connection.httpapi._display_message.call_count == 3
-        assert patched.call_args.kwargs['url'] == 'https://product.apis.f5.com/ee/v1/telemetry'
-        assert patched.call_args.kwargs['headers']['User-Agent'] == 'F5_BIGIP/{0}'.format(CURRENT_COLL_VERSION)
-        assert patched.call_args.kwargs['headers']['F5-ApiKey'] == TEEM_KEY
-        assert patched.call_args.kwargs['data']['digitalAssetVersion'] == CURRENT_COLL_VERSION
-        assert patched.call_args.kwargs['data']['observationStartTime'] == self.start_time
+        assert patched.call_args[1]['url'] == 'https://product.apis.f5.com/ee/v1/telemetry'
+        assert patched.call_args[1]['headers']['User-Agent'] == 'F5_BIGIP/{0}'.format(CURRENT_COLL_VERSION)
+        assert patched.call_args[1]['headers']['F5-ApiKey'] == TEEM_KEY
+        assert patched.call_args[1]['data']['digitalAssetVersion'] == CURRENT_COLL_VERSION
+        assert patched.call_args[1]['data']['observationStartTime'] == self.start_time
 
     @patch('ansible_collections.f5networks.f5_bigip.plugins.module_utils.teem.open_url')
-    def test_teem_client_send(self, patched):
+    def test_teem_client_send_error(self, patched):
         self.connection.send.return_value = connection_response(
             load_fixture('load_tmos_version.json')
         )

@@ -41,6 +41,7 @@ options:
       - name: f5_telemetry
 version_added: "1.0"
 """
+import os
 import re
 from ansible.module_utils.basic import to_text
 from ansible.plugins.httpapi import HttpApiBase
@@ -50,6 +51,11 @@ from ansible.errors import AnsibleConnectionFailure
 from ansible_collections.f5networks.f5_bigip.plugins.module_utils.constants import (
     LOGIN, LOGOUT, BASE_HEADERS
 )
+
+from io import (
+    StringIO, BytesIO
+)
+
 
 try:
     import json
@@ -101,9 +107,13 @@ class HttpApi(HttpApiBase):
         # with BigIP. If we need to handle 50x upstream for say modules that loop and reconnect after performing
         # operation on device i.e. software install we will remove this and do the handling in the module.
 
-        handled_error = re.search(err_5xx, str(exc.code))
-        if handled_error:
+        server_errors = re.search(err_5xx, str(exc.code))
+        if server_errors:
             raise AnsibleConnectionFailure('Could not connect to {0}: {1}'.format(self.connection._url, exc.reason))
+        if exc.code == 404:
+            # 404 errors need to be handled upstream due to exists methods relying on it.
+            # Other codes will be raised by underlying connection plugin.
+            return True
         return False
 
     def send_request(self, url, method=None, **kwargs):
@@ -111,22 +121,107 @@ class HttpApi(HttpApiBase):
         data = json.dumps(body) if body else None
 
         try:
-            self._display_request(method, url)
+            self._display_request(method, url, body)
             response, response_data = self.connection.send(url, data, method=method, **kwargs)
             response_value = self._get_response_value(response_data)
             return dict(
                 code=response.getcode(),
                 contents=self._response_to_json(response_value),
-                headers=response.headers
+                headers=response.getheaders()
             )
 
         except HTTPError as e:
             return dict(code=e.code, contents=json.loads(e.read()))
 
-    def _display_request(self, method, data):
-        self._display_message(
-            'BIG-IP API Call: {0} {1} with data {2}'.format(method, self.connection._url, data)
-        )
+    def send_file(self, url, src, dest=None):
+        """Upload a file to an arbitrary URL.
+
+        This method is responsible for correctly chunking an upload request to an
+        arbitrary file worker URL.
+
+        Arguments:
+            url (string): The URL to upload a file to.
+            src (string): The file to be uploaded.
+            dest (string): The file name to create on the remote device.
+
+        Returns:
+            bool: True on success. False otherwise.
+
+        Raises:
+            AnsibleConnectionFailure: Raised if ``retries`` limit is exceeded.
+        """
+
+        # This appears to be the largest chunk size that iControlREST can handle.
+        #
+        # The trade-off you are making by choosing a chunk size is speed, over size of
+        # transmission. A lower chunk size will be slower because a smaller amount of
+        # data is read from disk and sent via HTTP. Lots of disk reads are slower and
+        # There is overhead in sending the request to the BIG-IP.
+        #
+        # Larger chunk sizes are faster because more data is read from disk in one
+        # go, and therefore more data is transmitted to the BIG-IP in one HTTP request.
+        #
+        # If you are transmitting over a slow link though, it may be more reliable to
+        # transmit many small chunks that fewer large chunks. It will clearly take
+        # longer, but it may be more robust.
+        chunk_size = 1024 * 7168
+        start = 0
+        retries = 0
+        size = os.stat(src).st_size
+
+        if dest is None:
+            basename = os.path.basename(src)
+        else:
+            basename = dest
+        url = '{0}/{1}'.format(url.rstrip('/'), basename)
+
+        with open(src, 'rb') as fileobj:
+            while True:
+                if retries == 3:
+                    # Retries are used here to allow the REST API to recover if you kill
+                    # an upload mid-transfer.
+                    #
+                    # There exists a case where retrying a new upload will result in the
+                    # API returning the POSTed payload (in bytes) with a non-200 response
+                    # code.
+                    #
+                    # Retrying (after seeking back to 0) seems to resolve this problem.
+                    raise AnsibleConnectionFailure(
+                        "Failed to upload file too many times."
+                    )
+                try:
+                    file_slice = fileobj.read(chunk_size)
+                    if not file_slice:
+                        break
+
+                    current_bytes = len(file_slice)
+                    if current_bytes < chunk_size:
+                        end = size
+                    else:
+                        end = start + current_bytes
+                    headers = {
+                        'Content-Range': '%s-%s/%s' % (start, end - 1, size),
+                        'Content-Type': 'application/octet-stream'
+                    }
+                    self.connection.send(url, file_slice, method='POST', headers=headers)
+                    start += current_bytes
+                except HTTPError:
+                    # You must seek back to the beginning of the file upon exception.
+                    #
+                    # If this is not done, then you risk uploading a partial file.
+                    fileobj.seek(0)
+                    retries += 1
+        return True
+
+    def _display_request(self, method, url, data=None):
+        if data:
+            self._display_message(
+                'BIG-IP API Call: {0} to {1} with data {2}'.format(method, url, data)
+            )
+        else:
+            self._display_message(
+                'BIG-IP API Call: {0} to {1}'.format(method, url)
+            )
 
     def _display_message(self, msg):
         self.connection._log_messages(msg)
