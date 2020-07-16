@@ -76,8 +76,8 @@
     that:
       - result is not changed
 
-- import_tasks: issue-00730.yaml
+- import_tasks: issue-00730.yml
   tags: issue-00730
 
-- import_tasks: issue-01717.yaml
+- import_tasks: issue-01717.yml
   tags: issue-01717

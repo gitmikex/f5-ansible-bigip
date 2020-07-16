@@ -8,8 +8,6 @@ __metaclass__ = type
 
 import json
 import os
-from unittest.mock import MagicMock
-from unittest import TestCase
 
 from ansible.module_utils.basic import AnsibleModule
 
