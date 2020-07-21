@@ -1,0 +1,19 @@
+authors:
+  - Wojciech Wypior (@wojtek0806)
+dependencies:
+  ansible.netcommon: '*'
+description: PLACEHOLDER
+documentation: PLACEHOLDER
+homepage: PLACEHOLDER
+issues: PLACEHOLDER
+license: GPL-3.0-only
+name: {{ collection }}
+namespace: f5networks
+readme: README.md
+repository: PLACEHOLDER
+tags:
+  - f5
+  - networking
+  - bigip
+  - bigiq
+version: {{ version }}

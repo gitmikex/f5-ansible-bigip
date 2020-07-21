@@ -7,30 +7,63 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
+import sys
 import os
 
+from .lib.common import BASE_DIR
 from invoke import task
-from .lib.common import get_base_dir
-
-TEST_DIR = get_base_dir() + '/integration'
 
 
-@task(name='all')
-def test_all(c):
-    """Runs full test suite."""
-    for test in get_all_directories():
-        with c.cd(TEST_DIR + '/' + test):
-            print("Testing {0} module.".format(test))
-            c.run('molecule test')
+@task(name='f5-sanity')
+def f5_sanity(c):
+    """Runs additional sanity tests on the F5 modules."""
+    cmds = [
+        'bash {0}/sanity/correct-defaultdict-import.sh'.format(BASE_DIR),
+        'bash {0}/sanity/correct-iteritems-import.sh'.format(BASE_DIR),
+        'bash {0}/sanity/incorrect-comparisons.sh'.format(BASE_DIR),
+        'bash {0}/sanity/integration-test-idempotent-names.sh'.format(BASE_DIR),
+        'bash {0}/sanity/q-debugging-exists.sh'.format(BASE_DIR),
+        'bash {0}/sanity/unnecessary-quotes-around-common.sh'.format(BASE_DIR),
+        'bash {0}/sanity/unnecessary-default-none.sh'.format(BASE_DIR),
+        'bash {0}/sanity/unnecessary-required-false.sh'.format(BASE_DIR),
+    ]
+
+    for cmd in cmds:
+        c.run(cmd, pty=True)
 
 
-def get_all_directories():
-    """Returns full list of directories for integration tests."""
-    output = [d for d in os.listdir(TEST_DIR) if os.path.isdir(os.path.join(TEST_DIR, d)) and d != 'resources']
-    return output
+@task
+def unit(c):
+    """Unit tests on F5 Ansible modules."""
+    c.run("pytest -s {0}/ansible_collections/f5networks/f5_bigip/tests/".format(BASE_DIR))
 
 
-def filter_for_changes(c):
-    """Placeholder for function that will be entry point to selective testing."""
-    pass
+@task
+def style(c):
+    """Doc style testing on modules."""
+    c.run("pycodestyle {0}/ansible_collections/f5networks/f5_bigip/plugins/".format(BASE_DIR))
+
+
+@task(name='install-dep')
+def install_dependency(c):
+    """Install netcommon collection if missing."""
+    c.run("ansible-galaxy collection install ansible.netcommon -p {0}".format(BASE_DIR))
+
+
+@task(name='ansible-test')
+def ansible_test(c, python_version='3.7', requirements=False):
+    """Runs ansible-test sanity tests against modules."""
+    net_dir = '{0}/ansible_collections/ansible/netcommon/'.format(BASE_DIR)
+    collection = '{0}/ansible_collections/f5networks/f5_bigip'.format(BASE_DIR)
+    if not os.path.exists(net_dir):
+        install_dependency(c)
+    with c.cd(collection):
+        if requirements:
+            execute = 'ansible-test sanity --requirements --python {0}'.format(python_version)
+        else:
+            execute = 'ansible-test sanity --python {0}'.format(python_version)
+        result = c.run(execute, warn=True)
+        if result.failed:
+            sys.exit(1)
+        c.run('rm -rf {0}/tests/output'.format(collection))
 

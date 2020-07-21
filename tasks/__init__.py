@@ -9,9 +9,12 @@ __metaclass__ = type
 
 from invoke import Collection
 
-
+from . import collection
+from . import module
 from . import test
 
 ns = Collection(
+    collection,
+    module,
     test,
 )

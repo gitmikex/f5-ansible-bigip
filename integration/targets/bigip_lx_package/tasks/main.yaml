@@ -1,7 +1,7 @@
 ---
 - name: Create LX package
   bigip_lx_package:
-    package: "{{ scenario_dir }}/files/MyApp-0.1.0-0001.noarch.rpm"
+    package: "{{ role_path }}/files/MyApp-0.1.0-0001.noarch.rpm"
     state: present
   register: result
 
@@ -12,7 +12,7 @@
 
 - name: Create LX package - Idempotent check
   bigip_lx_package:
-    package: "{{ scenario_dir }}/files/MyApp-0.1.0-0001.noarch.rpm"
+    package: "{{ role_path }}/files/MyApp-0.1.0-0001.noarch.rpm"
     state: present
   register: result
 
@@ -23,7 +23,7 @@
 
 - name: Delete LX package
   bigip_lx_package:
-    package: "{{ scenario_dir }}/files/MyApp-0.1.0-0001.noarch.rpm"
+    package: "{{ role_path }}/files/MyApp-0.1.0-0001.noarch.rpm"
     state: absent
   register: result
 
@@ -34,7 +34,7 @@
 
 - name: Delete LX package - Idempotent check
   bigip_lx_package:
-    package: "{{ scenario_dir }}/files/MyApp-0.1.0-0001.noarch.rpm"
+    package: "{{ role_path }}/files/MyApp-0.1.0-0001.noarch.rpm"
     state: absent
   register: result
 
@@ -45,7 +45,7 @@
 
 - name: Create LX package
   bigip_lx_package:
-    package: "{{ scenario_dir }}/files/MyApp-0.1.0-0001.noarch.rpm"
+    package: "{{ role_path }}/files/MyApp-0.1.0-0001.noarch.rpm"
     state: present
   register: result
 
@@ -76,8 +76,8 @@
     that:
       - result is not changed
 
-- import_tasks: issue-00730.yml
+- import_tasks: issue-00730.yaml
   tags: issue-00730
 
-- import_tasks: issue-01717.yml
+- import_tasks: issue-01717.yaml
   tags: issue-01717
