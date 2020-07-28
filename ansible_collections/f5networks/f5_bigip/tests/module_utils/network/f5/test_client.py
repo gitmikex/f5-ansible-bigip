@@ -328,7 +328,7 @@ class TestTMOSVersion(TestCase):
 
         with self.assertRaises(F5ModuleError) as res:
             tmos_version(self.client)
-        assert '{\'errorMessage\': \'ERROR\'}' == str(res.exception)
+        assert 'HTTP Error 400:' in str(res.exception)
 
     def test_tmos_version_returns(self):
         self.connection.send.return_value = connection_response(
@@ -344,7 +344,7 @@ class TestTMOSVersion(TestCase):
         )
         with self.assertRaises(F5ModuleError) as res:
             modules_provisioned(self.client)
-        assert '{\'errorMessage\': \'ERROR\'}' in str(res.exception)
+        assert 'HTTP Error 400:' in str(res.exception)
 
     def test_modules_provisioned_returns_empty(self):
         self.connection.send.return_value = connection_response(

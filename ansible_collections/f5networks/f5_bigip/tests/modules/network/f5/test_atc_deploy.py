@@ -11,8 +11,8 @@ import os
 
 from ansible.module_utils.basic import AnsibleModule
 
-from ansible_collections.f5networks.f5_bigip.plugins.modules.bigip_lx_package import (
-    Parameters, ArgumentSpec, ModuleManager
+from ansible_collections.f5networks.f5_bigip.plugins.modules.atc_deploy import (
+    Parameters, ArgumentSpec, ModuleManager, As3Manager
 )
 from ansible_collections.f5networks.f5_bigip.tests.compat import unittest
 from ansible_collections.f5networks.f5_bigip.tests.compat.mock import Mock, patch
@@ -44,11 +44,15 @@ def load_fixture(name):
 class TestParameters(unittest.TestCase):
     def test_module_parameters(self):
         args = dict(
-            package='MyApp-0.1.0-0001.noarch.rpm',
+            service_type='as3',
+            content=dict(param1='foo', param2='bar'),
+            as3_tenant='test_tenant',
             state='present'
         )
         p = Parameters(params=args)
-        assert p.package == 'MyApp-0.1.0-0001.noarch.rpm'
+        assert p.service_type == 'as3'
+        assert p.content == dict(param1='foo', param2='bar')
+        assert p.as3_tenant == 'test_tenant'
 
 
 class TestManager(unittest.TestCase):
@@ -61,11 +65,12 @@ class TestManager(unittest.TestCase):
     def tearDown(self):
         self.patcher1.stop()
 
-    def test_upload_rpm_package(self, *args):
-        package_name = os.path.join(fixture_path, 'MyApp-0.1.0-0001.noarch.rpm')
-        # Configure the arguments that would be sent to the Ansible module
+    def test_upsert_tenant_declaration(self, *args):
+        declaration = load_fixture('as3_declare.json')
         set_module_args(dict(
-            package=package_name,
+            service_type='as3',
+            content=declaration,
+            as3_tenant='Sample_01',
             state='present',
         ))
 
@@ -74,16 +79,37 @@ class TestManager(unittest.TestCase):
             supports_check_mode=self.spec.supports_check_mode,
             required_if=self.spec.required_if
         )
+        m1 = As3Manager(module=module)
         mm = ModuleManager(module=module)
+        mm.get_manager = Mock(return_value=m1)
 
         # Override methods to force specific logic in the module to happen
-        mm.exists = Mock(side_effect=[False, True])
-        mm.create_on_device = Mock(return_value=True)
-        mm.check_file_exists_on_device = Mock(return_value=False)
-        mm.upload_to_device = Mock(return_value=True)
-        mm.enable_iapplx_on_device = Mock(return_value=True)
-        mm.retain_package_file = Mock(return_value=False)
-        mm.remove_package_file_from_device = Mock(return_value=True)
+        m1.exists = Mock(return_value=False)
+        m1.upsert_on_device = Mock(return_value=True)
+
+        results = mm.exec_module()
+
+        assert results['changed'] is True
+
+    def test_remove_tenant_declaration(self, *args):
+        set_module_args(dict(
+            service_type='as3',
+            as3_tenant='Sample_01',
+            state='absent',
+        ))
+
+        module = AnsibleModule(
+            argument_spec=self.spec.argument_spec,
+            supports_check_mode=self.spec.supports_check_mode,
+            required_if=self.spec.required_if
+        )
+        m1 = As3Manager(module=module)
+        mm = ModuleManager(module=module)
+        mm.get_manager = Mock(return_value=m1)
+
+        # Override methods to force specific logic in the module to happen
+        m1.resource_exists = Mock(side_effect=[True, False])
+        m1.remove_from_device = Mock(return_value=True)
 
         results = mm.exec_module()
 

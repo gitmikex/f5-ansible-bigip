@@ -42,7 +42,6 @@ options:
 version_added: "1.0"
 """
 import os
-import re
 from ansible.module_utils.basic import to_text
 from ansible.plugins.httpapi import HttpApiBase
 from ansible.module_utils.six.moves.urllib.error import HTTPError
@@ -51,10 +50,7 @@ from ansible.errors import AnsibleConnectionFailure
 from ansible_collections.f5networks.f5_bigip.plugins.module_utils.constants import (
     LOGIN, LOGOUT, BASE_HEADERS
 )
-
-from io import (
-    StringIO, BytesIO
-)
+from ansible_collections.f5networks.f5_bigip.plugins.module_utils.common import F5ModuleError
 
 
 try:
@@ -102,24 +98,15 @@ class HttpApi(HttpApiBase):
         self.send_request(logout_uri, method='DELETE')
 
     def handle_httperror(self, exc):
-        err_5xx = r'^5\d{2}$'
-        # We raise AnsibleConnectionFailure without passing to the module, as 50x type errors indicate a problem
-        # with BigIP. If we need to handle 50x upstream for say modules that loop and reconnect after performing
-        # operation on device i.e. software install we will remove this and do the handling in the module.
-
-        server_errors = re.search(err_5xx, str(exc.code))
-        if server_errors:
-            raise AnsibleConnectionFailure('Could not connect to {0}: {1}'.format(self.connection._url, exc.reason))
         if exc.code == 404:
             # 404 errors need to be handled upstream due to exists methods relying on it.
             # Other codes will be raised by underlying connection plugin.
-            return True
+            return exc
         return False
 
     def send_request(self, url, method=None, **kwargs):
         body = kwargs.pop('data', None)
         data = json.dumps(body) if body else None
-
         try:
             self._display_request(method, url, body)
             response, response_data = self.connection.send(url, data, method=method, **kwargs)
@@ -129,9 +116,8 @@ class HttpApi(HttpApiBase):
                 contents=self._response_to_json(response_value),
                 headers=response.getheaders()
             )
-
-        except HTTPError as e:
-            return dict(code=e.code, contents=json.loads(e.read()))
+        except HTTPError as exc:
+            return dict(code=exc.code, contents=to_text(exc))
 
     def send_file(self, url, src, dest=None):
         """Upload a file to an arbitrary URL.
@@ -234,7 +220,7 @@ class HttpApi(HttpApiBase):
             return json.loads(response_text) if response_text else {}
         # JSONDecodeError only available on Python 3.5+
         except ValueError:
-            raise ConnectionError('Invalid JSON response: %s' % response_text)
+            raise F5ModuleError('Invalid JSON response: %s' % response_text)
 
     def _telemetry(self):
         return self.get_option('telemetry')

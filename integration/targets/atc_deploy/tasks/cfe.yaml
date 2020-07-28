@@ -1,0 +1,38 @@
+---
+- name: Upload declaration - CFE
+  atc_deploy:
+    content: "{{ lookup('file', 'failover_declaration.json') }}"
+    service_type: "cfe"
+  register: result
+
+- name: Assert Upload declaration - CFE
+  assert:
+    that:
+      - result is changed
+      - result is success
+# module is not idempotent due to CFE bug, these tests are just placeholders for when CFE is fixed.
+- name: Upload declaration - TS - Idempotent check
+  atc_deploy:
+    content: "{{ lookup('file', 'failover_declaration.json') }}"
+    service_type: "cfe"
+  register: result
+
+# module is not idempotent due to CFE bug, these tests are just placeholders for when CFE is fixed.
+- name: Assert Upload declaration - CFE - Idempotent check
+  assert:
+    that:
+      - result is changed
+      - result is success
+
+- name: Declaration produces errors - CFE
+  atc_deploy:
+    content: "{{ lookup('file', 'ts_failure.json') }}"
+    service_type: "cfe"
+  register: result
+  failed_when: result is success
+
+- name: Assert Declaration produces errors - TS
+  assert:
+    that:
+      - result is not changed
+      - "'HTTP Error 500: Server Error' in result.msg"

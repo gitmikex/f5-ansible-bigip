@@ -252,7 +252,7 @@ class ModuleManager(object):
         params['partition'] = self.want.partition
         uri = "/mgmt/PATH/TO/RESOURCE/"
 
-        response = self.client.post(uri, json=params)
+        response = self.client.post(uri, data=params)
 
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
@@ -261,7 +261,7 @@ class ModuleManager(object):
     def update_on_device(self):
         params = self.changes.api_params()
         uri = "/mgmt/PATH/TO/RESOURCE/{0}".format(self.want.name)
-        response = self.client.patch(uri, json=params)
+        response = self.client.patch(uri, data=params)
 
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])

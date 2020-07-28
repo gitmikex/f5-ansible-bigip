@@ -71,7 +71,7 @@ class TestBigIPHttpapi(TestCase):
         with self.assertRaises(AnsibleConnectionFailure) as res:
             self.connection.httpapi.login('foo', 'bar')
 
-        assert "Authentication process failed, server returned: {'errorMessage': 'ERROR'}" in str(res.exception)
+        assert "Authentication process failed, server returned: HTTP Error 400" in str(res.exception)
 
     def test_login_success_properties_populated(self):
         self.connection.send.return_value = connection_response(
