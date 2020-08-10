@@ -1,0 +1,86 @@
+---
+
+# Test the bigip_wait module
+#
+# Running this playbook assumes that you have a BIG-IP installation at the
+# ready to receive the commands issued in this Playbook.
+#
+# This module will run tests against a BIG-IP host to verify that the
+# bigip_wait module behaves as expected.
+#
+# Usage:
+#
+#    ansible-playbook -i notahost, test/integration/bigip_wait.yaml
+#
+# Examples:
+#
+#    Run all tests on the {module} module
+#
+#    ansible-playbook -i notahost, test/integration/bigip_wait.yaml
+#
+
+- name: Test the bigip_wait module - REST
+  hosts: "f5-test[0]"
+  connection: httpapi
+  any_errors_fatal: true
+
+  vars:
+    ansible_user: "{{ lookup('env','F5_USER') }}"
+    ansible_httpapi_password: "{{ lookup('env','F5_PASSWORD') }}"
+    ansible_network_os: "f5networks.f5_bigip.bigip"
+    ansible_httpapi_use_ssl: true
+    ansible_httpapi_use_proxy: false
+    ansible_httpapi_validate_certs: "{{ lookup('env','F5_VALIDATE_CERT') }}"
+    ansible_httpapi_port: "{{ lookup('env','F5_SERVER_PORT') }}"
+    persistent_log_messages: true
+    f5_telemetry: false
+
+  tasks:
+    - name: Include role - REST
+      import_role:
+        name: bigip_wait
+        tasks_from: rest.yaml
+      tags:
+        - rest
+
+- name: Test the bigip_wait module - SSH - u/p auth
+  hosts: "f5-test[0]"
+  connection: network_cli
+  any_errors_fatal: true
+
+  vars:
+    ansible_user: "{{ lookup('env','F5_USER') }}"
+    ansible_ssh_password: "{{ lookup('env','F5_PASSWORD') }}"
+    ansible_network_os: "f5networks.f5_bigip.bigip"
+    ansible_port: "{{ lookup('env','F5_SERVER_PORT') }}"
+    persistent_log_messages: true
+    f5_telemetry: false
+
+  tasks:
+    - name: Include role - SSH - u/p auth
+      import_role:
+        name: bigip_wait
+        tasks_from: ssh-userauth.yaml
+      tags:
+        - ssh-user
+
+- name: Test the bigip_wait module - SSH - cert auth
+  hosts: "f5-test[0]"
+  connection: network_cli
+  any_errors_fatal: true
+
+  vars:
+    ansible_user: "{{ lookup('env','F5_USER') }}"
+    ansible_private_key_file: "{{ lookup('env','F5_KEYFILE') }}"
+    ansible_network_os: "f5networks.f5_bigip.bigip"
+    ansible_port: "{{ lookup('env','F5_SERVER_PORT') }}"
+    persistent_log_messages: true
+    f5_telemetry: false
+
+  tasks:
+    - name: Include role - SSH - cert auth
+      import_role:
+        name: bigip_wait
+        tasks_from: ssh-certauth.yaml
+      tags:
+        - ssh-cert

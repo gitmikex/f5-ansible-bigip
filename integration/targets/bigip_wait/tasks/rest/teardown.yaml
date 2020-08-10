@@ -1,0 +1,5 @@
+---
+- name: Remove created object - REST
+  bigip_command:
+    commands:
+      - tmsh delete ltm virtual foo

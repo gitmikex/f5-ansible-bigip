@@ -137,13 +137,6 @@ def flatten_boolean(value):
         return 'no'
 
 
-def is_cli(module):
-    transport = module.params.get('transport', None)
-    provider_transport = (module.params['provider'] or {}).get('transport')
-    result = 'cli' in (transport, provider_transport)
-    return result
-
-
 def is_valid_hostname(host):
     """Reasonable attempt at validating a hostname
 

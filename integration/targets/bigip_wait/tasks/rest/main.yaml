@@ -1,0 +1,48 @@
+---
+
+- import_tasks: setup.yaml
+
+- name: Wait for BIG-IP to be ready for configuration - REST
+  bigip_wait:
+    timeout: 10
+  ignore_errors: true
+
+- name: Attempt to make a change, expected failure - REST
+  bigip_command:
+    commands:
+      - tmsh create ltm virtual foo { destination 1.1.1.1:80 }
+  register: result
+  ignore_errors: true
+
+- name: Assert Attempt to make a change, expected failure - REST
+  assert:
+    that:
+      - result is not changed
+
+- name: Wait for BIG-IP to actually be ready - REST
+  bigip_wait:
+    timeout: 1800
+  register: result
+
+- name: Assert Wait for BIG-IP to actually be ready - REST
+  assert:
+    that:
+      - result is not changed
+      - "'elapsed' in result"
+
+- name: Attempt to make a change, no failure - REST
+  bigip_command:
+    commands:
+      - tmsh create ltm virtual foo { destination 1.1.1.1:80 }
+  register: result
+
+- name: Assert Attempt to make a change, no failure - REST
+  assert:
+    that:
+      - result is changed
+
+- import_tasks: issue-01437.yaml
+  tags: issue-01437
+
+- import_tasks: issue_vcmp_wait.yaml
+  tags: issue_vcmp_wait

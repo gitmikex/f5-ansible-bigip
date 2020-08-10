@@ -1,0 +1,10 @@
+---
+
+- name: Reboot BIG-IP - SSH - u/p auth
+  bigip_command:
+    commands: tmsh reboot
+  ignore_errors: true
+
+- name: Wait for shutdown to happen - SSH - u/p auth
+  pause:
+    seconds: 90

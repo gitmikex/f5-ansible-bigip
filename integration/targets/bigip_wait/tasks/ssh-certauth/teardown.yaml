@@ -1,0 +1,6 @@
+---
+
+- name: Remove created object - SSH - cert auth
+  bigip_command:
+    commands:
+      - tmsh delete ltm virtual foo
