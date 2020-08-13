@@ -1,0 +1,197 @@
+---
+
+- name: Run single command - REST
+  bigip_command:
+    commands:
+      - show sys failover
+  register: result
+
+- name: Assert Run single command - REST
+  assert:
+    that:
+      - result.stdout_lines|length == 1
+
+- name: Run multiple commands - REST
+  bigip_command:
+    commands:
+      - tmsh show sys clock
+      - tmsh list auth
+  register: result
+
+- name: Assert Run multiple commands - REST
+  assert:
+    that:
+      - result.stdout_lines|length == 2
+
+- name: Run command missing tmsh - REST
+  bigip_command:
+    commands:
+      - show sys clock
+  register: result
+
+- name: Assert Run command missing tmsh - REST
+  assert:
+    that:
+      - result.stdout_lines|length == 1
+
+- name: Run multiple commands, one missing tmsh - REST
+  bigip_command:
+    commands:
+      - tmsh show sys clock
+      - list auth
+  register: result
+
+- name: Assert Run multiple commands, one missing tmsh - REST
+  assert:
+    that:
+      - result.stdout_lines|length == 2
+
+- name: Wait for something - REST
+  bigip_command:
+    commands:
+      - tmsh show sys clock
+    wait_for:
+      - result[0] contains Sys::Clock
+  register: result
+
+- name: Assert Wait for something - REST
+  assert:
+    that:
+      - result.stdout_lines|length == 1
+
+
+- name: Run modify commands - REST
+  bigip_command:
+    commands:
+      - tmsh modify sys db setup.run value true
+      - tmsh modify sys db setup.run value false
+  register: result
+
+- name: Assert Run modify commands - REST
+  assert:
+    that:
+      - result.stdout_lines|length == 0
+
+- name: Run modify commands with a show command - REST
+  bigip_command:
+    commands:
+      - tmsh modify sys db setup.run value true
+      - tmsh modify sys db setup.run value false
+      - tmsh show sys clock
+  register: result
+
+- name: Assert Run modify commands with a show command - REST
+  assert:
+    that:
+      - result is changed
+
+- name: Run a single immutable command, no tmsh - REST
+  bigip_command:
+    commands:
+      - show sys provision
+  register: result
+
+- name: Assert Run a single immutable command, no tmsh - REST
+  assert:
+    that:
+      - result is not changed
+
+- name: Run a single immutable command, with tmsh - REST
+  bigip_command:
+    commands:
+      - tmsh show sys provision
+  register: result
+
+- name: Assert Run a single immutable command, with tmsh - REST
+  assert:
+    that:
+      - result is not changed
+
+- name: Run a single mutable command, no tmsh - REST
+  bigip_command:
+    commands:
+      - create ltm virtual foo
+  register: result
+
+- name: Assert Run a single mutable command, no tmsh - REST
+  assert:
+    that:
+      - result is changed
+
+- name: Run a single mutable command, with tmsh - REST
+  bigip_command:
+    commands:
+      - delete ltm virtual foo
+  register: result
+
+- name: Assert Run a single mutable command, with tmsh - REST
+  assert:
+    that:
+      - result is changed
+
+- name: Run a multiple mutable/immutable commands, no tmsh - REST
+  bigip_command:
+    commands:
+      - create ltm virtual foo
+      - list sys provision
+  register: result
+
+- name: Assert Run a multiple mutable/immutable commands, no tmsh - REST
+  assert:
+    that:
+      - result is changed
+
+- name: Run a multiple mutable/immutable commands, tmsh - REST
+  bigip_command:
+    commands:
+      - list sys provision
+      - delete ltm virtual foo
+  register: result
+
+- name: Assert Run a multiple mutable/immutable commands, tmsh - REST
+  assert:
+    that:
+      - result is changed
+
+- name: Run command that raises warnings - REST
+  bigip_command:
+    commands:
+      - create ltm virtual foo { destination 1.1.1.1:80 }
+  register: result
+
+- name: Assert Run command that raises warnings - REST
+  assert:
+    that:
+      - "'warnings' in result"
+
+- name: Run command that does not raise warnings - REST
+  bigip_command:
+    commands:
+      - list ltm virtual
+  register: result
+
+- name: Assert Run command that does not raise warnings - REST
+  assert:
+    that:
+      - "'warnings' not in result"
+
+- name: Remove virtual that was created - REST
+  bigip_command:
+    commands:
+      - delete ltm virtual foo
+
+- name: Run command that raises warnings, tmsh prefix - REST
+  bigip_command:
+    commands:
+      - tmsh create ltm virtual foo { destination 1.1.1.1:80 }
+  register: result
+
+- name: Assert Run command that raises warnings, tmsh prefix - REST
+  assert:
+    that:
+      - "'warnings' in result"
+
+- name: Remove virtual that was created, tmsh prefix - REST
+  bigip_command:
+    commands:
+      - tmsh delete ltm virtual foo

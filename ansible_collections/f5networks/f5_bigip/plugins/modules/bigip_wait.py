@@ -8,10 +8,6 @@ from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
 
-ANSIBLE_METADATA = {'metadata_version': '1.1',
-                    'status': ['stableinterface'],
-                    'supported_by': 'certified'}
-
 DOCUMENTATION = r'''
 ---
 module: bigip_wait
@@ -464,10 +460,10 @@ class ModuleManager(object):
         self.connection = kwargs.get('connection', None)
 
     def exec_module(self):
-        if self.module.params['use_ssh'] == 'no':
-            manager = self.get_manager('v2')
-        else:
+        if self.module.params['use_ssh']:
             manager = self.get_manager('v1')
+        else:
+            manager = self.get_manager('v2')
         result = manager.exec_module()
         return result
 
