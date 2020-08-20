@@ -119,7 +119,7 @@ class HttpApi(HttpApiBase):
         except HTTPError as exc:
             return dict(code=exc.code, contents=to_text(exc))
 
-    def send_file(self, url, src, dest=None):
+    def upload_file(self, url, src, dest=None):
         """Upload a file to an arbitrary URL.
 
         This method is responsible for correctly chunking an upload request to an
@@ -197,6 +197,66 @@ class HttpApi(HttpApiBase):
                     # If this is not done, then you risk uploading a partial file.
                     fileobj.seek(0)
                     retries += 1
+        return True
+
+    def download_file(self, url, dest):
+        """Download a file from the remote device
+
+        This method handles the chunking needed to download a file from
+        a given URL on the BIG-IP.
+
+        Arguments:
+            url (string): The URL to download.
+            dest (string): The location on (Ansible controller) disk to store the file.
+
+        Returns:
+            bool: True on success. False otherwise.
+        """
+        with open(dest, 'wb') as fileobj:
+            chunk_size = 512 * 1024
+            start = 0
+            end = chunk_size - 1
+            size = 0
+            current_bytes = 0
+
+            while True:
+                try:
+                    content_range = "%s-%s/%s" % (start, end, size)
+                    headers = {
+                        'Content-Range': content_range,
+                        'Content-Type': 'application/octet-stream'
+                    }
+                    response, _ = self.connection.send(url, None, headers=headers)
+                    if response.status == 200:
+                        # If the size is zero, then this is the first time through
+                        # the loop and we don't want to write data because we
+                        # haven't yet figured out the total size of the file.
+                        if size > 0:
+                            current_bytes += chunk_size
+                            fileobj.write(response.read())
+                    # Once we've downloaded the entire file, we can break out of
+                    # the loop
+                    if end == size:
+                        break
+                    crange = response.headers['Content-Range']
+                    # Determine the total number of bytes to read.
+                    if size == 0:
+                        size = int(crange.split('/')[-1]) - 1
+                        # If the file is smaller than the chunk_size, the BigIP
+                        # will return an HTTP 400. Adjust the chunk_size down to
+                        # the total file size...
+                        if chunk_size > size:
+                            end = size
+                        # ...and pass on the rest of the code.
+                        continue
+                    start += chunk_size
+                    if (current_bytes + chunk_size) > size:
+                        end = size
+                    else:
+                        end = start + chunk_size - 1
+                except HTTPError:
+                    # Any HTTP error is fatal and will result in corrupted download.
+                    raise
         return True
 
     def _display_request(self, method, url, data=None):

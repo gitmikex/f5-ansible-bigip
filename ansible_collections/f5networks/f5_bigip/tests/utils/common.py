@@ -7,7 +7,8 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import json
-from unittest.mock import Mock
+
+from unittest.mock import Mock, MagicMock
 
 from ansible.module_utils.six import BytesIO
 
@@ -18,3 +19,16 @@ def connection_response(response, status=200):
     response_text = json.dumps(response) if type(response) is dict else response
     response_data = BytesIO(response_text.encode() if response_text else ''.encode())
     return response_mock, response_data
+
+
+def download_response(file, status=200):
+    response_mock = MagicMock()
+    bytes_file = bytes(file, encoding='utf8')
+    response_mock.status = status
+    content_range = '0-{0}/{1}'.format(str(len(bytes_file)), str(len(bytes_file)))
+    response_mock.read.return_value = bytes_file
+    response_mock.headers = {
+        'Content-Range': content_range,
+        'Content-Type': 'application/octet-stream'
+    }
+    return response_mock, None

@@ -8,7 +8,9 @@ __metaclass__ = type
 
 import json
 import os
-from unittest.mock import MagicMock, ANY
+from unittest.mock import (
+    MagicMock, ANY
+)
 from unittest import TestCase
 
 from ansible.errors import AnsibleConnectionFailure
@@ -17,7 +19,9 @@ from ansible.module_utils.six import StringIO
 from ansible.playbook.play_context import PlayContext
 from ansible.plugins.loader import connection_loader
 
-from ansible_collections.f5networks.f5_bigip.tests.utils.common import connection_response
+from ansible_collections.f5networks.f5_bigip.tests.utils.common import (
+    connection_response, download_response
+)
 
 fixture_path = os.path.join(os.path.dirname(__file__), 'fixtures')
 fixture_data = {}
@@ -91,22 +95,22 @@ class TestBigIPHttpapi(TestCase):
         assert self.connection.httpapi._telemetry() is False
         assert self.connection.httpapi._network_os() == self.pc.network_os
 
-    def test_send_file(self):
+    def test_upload_file(self):
         self.connection.send.return_value = True
         binary_file = os.path.join(fixture_path, 'test_binary_file.mock')
-        self.connection.httpapi.send_file('/fake/path/to/upload', binary_file)
+        self.connection.httpapi.upload_file('/fake/path/to/upload', binary_file)
 
         self.connection.send.assert_called_once_with(
             '/fake/path/to/upload/test_binary_file.mock', ANY, method='POST',
             headers={'Content-Range': '0-307199/307200', 'Content-Type': 'application/octet-stream'}
         )
 
-    def test_send_file_retry(self):
-        self.connection.send.side_effect =[HTTPError(
+    def test_upload_file_retry(self):
+        self.connection.send.side_effect = [HTTPError(
             'http://bigip.local', 400, '', {}, StringIO('{"errorMessage": "ERROR"}')
         ), True]
         binary_file = os.path.join(fixture_path, 'test_binary_file.mock')
-        self.connection.httpapi.send_file('/fake/path/to/upload', binary_file)
+        self.connection.httpapi.upload_file('/fake/path/to/upload', binary_file)
 
         self.connection.send.assert_called_with(
             '/fake/path/to/upload/test_binary_file.mock', ANY, method='POST',
@@ -114,14 +118,35 @@ class TestBigIPHttpapi(TestCase):
         )
         assert self.connection.send.call_count == 2
 
-    def test_send_file_total_failure(self):
+    def test_upload_file_total_failure(self):
         self.connection.send.side_effect = HTTPError(
             'http://bigip.local', 400, '', {}, StringIO('{"errorMessage": "ERROR"}')
         )
         binary_file = os.path.join(fixture_path, 'test_binary_file.mock')
 
         with self.assertRaises(AnsibleConnectionFailure) as res:
-            self.connection.httpapi.send_file('/fake/path/to/upload', binary_file)
+            self.connection.httpapi.upload_file('/fake/path/to/upload', binary_file)
 
         assert 'Failed to upload file too many times.' in str(res.exception)
         assert self.connection.send.call_count == 3
+
+    def test_download_file(self):
+        self.connection.send.return_value = download_response('ab'*50000)
+        self.connection.download_file('/fake/path/to/download/fakefile', '/tmp/fakefile')
+        self.connection.send.assert_called_with('/fake/path/to/download/fakefile', None,
+                                                headers={'Content-Range': '0-99999/99999',
+                                                         'Content-Type': 'application/octet-stream'}
+                                                )
+        assert os.stat('/tmp/fakefile').st_size == 100000
+        # clean up
+        os.remove('/tmp/fakefile')
+
+    def test_download_file_http_error(self):
+        self.connection.send.side_effect = [
+            HTTPError('http://bigip.local', 400, '', {}, StringIO('{"errorMessage": "ERROR"}'))
+        ]
+
+        with self.assertRaises(HTTPError) as res:
+            self.connection.download_file('/fake/path/to/download/fakefile', '/tmp/fakefile')
+
+        assert res.exception.code == 400

@@ -48,7 +48,6 @@ notes:
 requirements:
   - The 'rpm' tool installed on the Ansible controller
 author:
-  - Tim Rupp (@caphrim007)
   - Wojciech Wypior (@wojtek0806)
 '''
 
@@ -294,7 +293,7 @@ class ModuleManager(object):
 
     def upload_to_device(self):
         try:
-            self.client.plugin.send_file("/mgmt/shared/file-transfer/uploads", self.want.package)
+            self.client.plugin.upload_file("/mgmt/shared/file-transfer/uploads", self.want.package)
         except F5ModuleError:
             raise F5ModuleError(
                 "Failed to upload the file."

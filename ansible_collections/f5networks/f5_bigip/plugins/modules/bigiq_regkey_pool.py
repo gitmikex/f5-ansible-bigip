@@ -45,7 +45,6 @@ options:
 requirements:
   - BIG-IQ >= 5.3.0
 author:
-  - Tim Rupp (@caphrim007)
   - Wojciech Wypior (@wojtek0806)
 '''
 
