@@ -1,0 +1,24 @@
+---
+
+- name: Issue 00549 - Create nodes
+  bigip_command:
+    commands:
+      - create ltm node node1 address 10.200.24.2
+      - create ltm node node2 address 10.200.24.3
+
+- name: Issue 00549 - Configure nodes
+  bigip_config:
+    merge_content: "{{ role_path }}/files/issue-00549.scf }}"
+  register: result
+  failed_when: result is success
+
+- name: Issue 00549 - Assert Configure nodes
+  assert:
+    that:
+      - result is success
+
+- name: Issue 00549 - Remove nodes
+  bigip_command:
+    commands:
+      - delete ltm node node1
+      - delete ltm node node2

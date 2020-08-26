@@ -76,18 +76,18 @@ EXAMPLES = r'''
     ansible_httpapi_password: "secret"
     ansible_network_os: f5networks.f5_bigip.bigip
     ansible_httpapi_use_ssl: yes
-    
-- name: Declaration with 2 Tenants - AS3
-  atc_deploy:
-    content: "{{ lookup('file', 'two_tenants.json') }}"
-    service_type: "as3"
 
-- name: Remove one tenant - AS3
-  atc_deploy:
-    service_type: "as3"
-    as3_tenant: "Sample_01"
-    state: absent
-  register: result
+  tasks:   
+    - name: Declaration with 2 Tenants - AS3
+      atc_deploy:
+        content: "{{ lookup('file', 'two_tenants.json') }}"
+        service_type: "as3"
+
+    - name: Remove one tenant - AS3
+      atc_deploy:
+        service_type: "as3"
+        as3_tenant: "Sample_01"
+        state: absent
 '''
 
 RETURN = r'''

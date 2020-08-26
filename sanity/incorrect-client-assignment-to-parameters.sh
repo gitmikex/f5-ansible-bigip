@@ -6,7 +6,7 @@
 
 found=''
 
-findings=$(egrep "Parameters\(client=client" ansible_collections/f5networks/f5_modules/ -R)
+findings=$(egrep "Parameters\(client=client" ansible_collections/f5networks/f5_bigip/ -R)
 if [ "$findings" ]; then
     echo "${findings}"
     found=1

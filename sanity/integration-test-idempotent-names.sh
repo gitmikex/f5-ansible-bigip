@@ -6,7 +6,7 @@
 
 found=''
 
-findings=$(egrep "idempotent check" test/integration/ -R)
+findings=$(egrep "idempotent check" integration/ -R)
 if [ "$findings" ]; then
     echo "${findings}"
     found=1

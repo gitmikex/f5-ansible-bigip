@@ -77,11 +77,12 @@ EXAMPLES = r'''
     ansible_network_os: f5networks.f5_bigip.bigip
     ansible_httpapi_use_ssl: yes
 
-- name: Wait for BIG-IP to be ready - REST
-  bigip_wait:
-    timeout: 10
-    delay: 10
-    sleep: 5
+  tasks:
+    - name: Wait for BIG-IP to be ready - REST
+      bigip_wait:
+        timeout: 10
+        delay: 10
+        sleep: 5
 
 
 - hosts: all
@@ -96,12 +97,13 @@ EXAMPLES = r'''
     ansible_network_os: "f5networks.f5_bigip.bigip"
     ansible_port: "22"
 
-- name: Wait for BIG-IP to be ready - SSH u/p
-  bigip_wait:
-    use_ssh: yes
-    timeout: 10
-    delay: 10
-    sleep: 5
+  tasks:
+    - name: Wait for BIG-IP to be ready - SSH u/p
+      bigip_wait:
+        use_ssh: yes
+        timeout: 10
+        delay: 10
+        sleep: 5
 
 - hosts: all
   collections:
@@ -115,12 +117,13 @@ EXAMPLES = r'''
     ansible_network_os: "f5networks.f5_bigip.bigip"
     ansible_port: "22"
 
-- name: Wait for BIG-IP to be ready - SSH cert
-  bigip_wait:
-    use_ssh: yes
-    timeout: 10
-    delay: 10
-    sleep: 5
+  tasks:
+    - name: Wait for BIG-IP to be ready - SSH cert
+      bigip_wait:
+        use_ssh: yes
+        timeout: 10
+        delay: 10
+        sleep: 5
 
 '''
 

@@ -70,15 +70,24 @@ author:
 '''
 
 EXAMPLES = r'''
-- name: Download a new UCS
-  bigip_ucs_fetch:
-    src: cs_backup.ucs
-    dest: /tmp/cs_backup.ucs
-    provider:
-      server: lb.mydomain.com
-      user: admin
-      password: secret
-  delegate_to: localhost
+- hosts: all
+  collections:
+    - f5networks.f5_bigip
+  connection: httpapi
+
+  vars:
+    ansible_host: "lb.mydomain.com"
+    ansible_user: "admin"
+    ansible_httpapi_password: "secret"
+    ansible_network_os: f5networks.f5_bigip.bigip
+    ansible_httpapi_use_ssl: yes
+
+  tasks:
+    - name: Download a new UCS
+      bigip_ucs_fetch:
+        src: cs_backup.ucs
+        dest: /tmp/cs_backup.ucs
+
 '''
 
 RETURN = r'''
