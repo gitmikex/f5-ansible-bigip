@@ -30,7 +30,7 @@
     ansible_network_os: "f5networks.f5_bigip.bigiq"
     ansible_httpapi_use_ssl: true
     ansible_httpapi_use_proxy: false
-    ansible_httpapi_validate_certs: "{{ lookup('env','F5_VALIDATE_CERT') }}"
+    ansible_httpapi_validate_certs: "{{ lookup('env','F5_VALIDATE_CERTS') }}"
     ansible_httpapi_port: "{{ lookup('env','F5_SERVER_PORT') }}"
     persistent_log_messages: false
     f5_telemetry: false
