@@ -1,0 +1,199 @@
+---
+
+- name: Issue 00700 - Select external-monitor facts
+  bigip_device_info:
+    include:
+      - external-monitors
+  register: result
+
+- name: Issue 00700 - Assert Select external-monitor facts
+  assert:
+    that:
+      - result is success
+      - result.external_monitors | selectattr("name", "match", "external") | map(attribute='manual_resume') | first == "no"
+      - result.external_monitors | json_query("[?name=='external'].manual_resume") | first == "no"
+
+- name: Issue 00700 - Select https-monitor facts
+  bigip_device_info:
+    include:
+      - https-monitors
+  register: result
+
+- name: Issue 00700 - Assert Select https-monitor facts
+  assert:
+    that:
+      - result is success
+      - result.https_monitors | selectattr("name", "match", "https") | map(attribute='manual_resume') | first == "no"
+      - result.https_monitors | json_query("[?name=='https'].manual_resume") | first == "no"
+
+- name: Issue 00700 - Select tcp-half-open-monitor facts
+  bigip_device_info:
+    include:
+      - tcp-half-open-monitors
+  register: result
+
+- name: Issue 00700 - Assert Select tcp-half-open-monitor facts
+  assert:
+    that:
+      - result is success
+      - result.tcp_half_open_monitors | selectattr("name", "match", "tcp_half_open") | map(attribute='manual_resume') | first == "no"
+      - result.tcp_half_open_monitors | json_query("[?name=='tcp_half_open'].manual_resume") | first == "no"
+
+- name: Issue 00700 - Select tcp-monitor facts
+  bigip_device_info:
+    include:
+      - tcp-monitors
+  register: result
+
+- name: Issue 00700 - Assert Select tcp-monitor facts
+  assert:
+    that:
+      - result is success
+      - result.tcp_monitors | selectattr("name", "match", "tcp") | map(attribute='manual_resume') | first == "no"
+      - result.tcp_monitors | json_query("[?name=='tcp'].manual_resume") | first == "no"
+
+- name: Issue 00700 - Select icmp-monitor facts
+  bigip_device_info:
+    include:
+      - icmp-monitors
+  register: result
+
+- name: Issue 00700 - Assert Select icmp-monitor facts
+  assert:
+    that:
+      - result is success
+      - result.icmp_monitors | selectattr("name", "match", "icmp") | map(attribute='manual_resume') | first == "no"
+      - result.icmp_monitors | json_query("[?name=='icmp'].manual_resume") | first == "no"
+
+- name: Issue 00700 - Select gateway-icmp-monitor facts
+  bigip_device_info:
+    include:
+      - gateway-icmp-monitors
+  register: result
+
+- name: Issue 00700 - Assert Select gateway-icmp-monitor facts
+  assert:
+    that:
+      - result is success
+      - result.gateway_icmp_monitors | selectattr("name", "match", "gateway_icmp") | map(attribute='manual_resume') | first == "no"
+      - result.gateway_icmp_monitors | json_query("[?name=='gateway_icmp'].manual_resume") | first == "no"
+
+- name: Issue 00700 - Select http-monitor facts
+  bigip_device_info:
+    include:
+      - http-monitors
+  register: result
+
+- name: Issue 00700 - Assert Select http-monitor facts
+  assert:
+    that:
+      - result is success
+      - result.http_monitors | selectattr("name", "match", "http") | map(attribute='manual_resume') | first == "no"
+      - result.http_monitors | json_query("[?name=='http'].manual_resume") | first == "no"
+
+- name: Issue 00700 - Select tcp-profile facts
+  bigip_device_info:
+    include:
+      - tcp-profiles
+  register: result
+
+- name: Issue 00700 - Assert Select tcp-profile facts
+  assert:
+    that:
+      - result is success
+      - result.tcp_profiles | selectattr("name", "match", "tcp") | map(attribute='fast_open') | first == "no"
+      - result.tcp_profiles | json_query("[?name=='tcp'].fast_open") | first == "no"
+
+- name: Issue 00700 - Select server-ssl-profile facts
+  bigip_device_info:
+    include:
+      - server-ssl-profiles
+  register: result
+
+- name: Issue 00700 - Assert Select server-ssl-profile facts
+  assert:
+    that:
+      - result is success
+      - result.server_ssl_profiles | selectattr("name", "match", "serverssl") | map(attribute='mode') | first == "yes"
+      - result.server_ssl_profiles | json_query("[?name=='serverssl'].mode") | first == "yes"
+
+- name: Issue 00700 - Select udp-profile facts
+  bigip_device_info:
+    include:
+      - udp-profiles
+  register: result
+
+- name: Issue 00700 - Assert Select udp-profile facts
+  assert:
+    that:
+      - result is success
+      - result.udp_profiles | selectattr("name", "match", "udp") | map(attribute='proxy_mss') | first == "no"
+      - result.udp_profiles | json_query("[?name=='udp'].proxy_mss") | first == "no"
+
+- name: Issue 00700 - Select http-profile facts
+  bigip_device_info:
+    include:
+      - http-profiles
+  register: result
+
+- name: Issue 00700 - Assert Select http-profile facts
+  assert:
+    that:
+      - result is success
+      - result.http_profiles | selectattr("name", "match", "http") | map(attribute='proxy_mode') | first == "reverse"
+      - result.http_profiles | json_query("[?name=='http'].proxy_mode") | first == "reverse"
+
+- name: Issue 00700 - Select fasthttp-profile facts
+  bigip_device_info:
+    include:
+      - fasthttp-profiles
+  register: result
+
+- name: Issue 00700 - Assert Select fasthttp-profile facts
+  assert:
+    that:
+      - result is success
+      - result.fasthttp_profiles | selectattr("name", "match", "fasthttp") | map(attribute='oneconnect_maximum_pool_size') | first == 2048
+      - result.fasthttp_profiles | json_query("[?name=='fasthttp'].oneconnect_maximum_pool_size") | first == 2048
+
+- name: Issue 00700 - Select fastl4-profile facts
+  bigip_device_info:
+    include:
+      - fastl4-profiles
+  register: result
+
+- name: Issue 00700 - Assert Select fastl4-profile facts
+  assert:
+    that:
+      - result is success
+      - result.fastl4_profiles | selectattr("name", "match", "fastL4") | map(attribute='idle_timeout') | first == 300
+      - result.fastl4_profiles | json_query("[?name=='fastL4'].idle_timeout") | first == 300
+
+- name: Issue 00700 - Select oneconnect-profile facts
+  bigip_device_info:
+    include:
+      - oneconnect-profiles
+  register: result
+
+- name: Issue 00700 - Assert Select oneconnect-profile facts
+  assert:
+    that:
+      - result is success
+      - result.oneconnect_profiles | selectattr("name", "match", "oneconnect") | map(attribute='max_age') | first == 86400
+      - result.oneconnect_profiles | json_query("[?name=='oneconnect'].max_age") | first == 86400
+
+- name: Issue 00700 - Select all profile facts
+  bigip_device_info:
+    include:
+      - profiles
+  register: result
+
+- name: Issue 00700 - Assert Select all profile facts
+  assert:
+    that:
+      - result is success
+      - "'fasthttp_profiles' in result"
+      - "'fastl4_profiles' in result"
+      - "'client_ssl_profiles' in result"
+      - "'oneconnect_profiles' in result"
+      - "'system-info' not in result"

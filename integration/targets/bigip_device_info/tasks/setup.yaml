@@ -1,0 +1,71 @@
+---
+
+- name: Create test VLAN
+  bigip_vlan:
+    name: "{{ vlan_name }}"
+    tag: "{{ vlan_tag }}"
+
+- name: Create test pool
+  bigip_pool:
+    description: "{{ pool_description }}"
+    lb_method: "{{ pool_lb_method }}"
+    name: "{{ pool_name }}"
+    monitor_type: and_list
+    monitors:
+      - http
+      - tcp
+    metadata:
+      foo1: bar
+      foo2: baz
+    priority_group_activation: 1
+
+- name: Add pool member
+  bigip_pool_member:
+    connection_limit: 100
+    description: my node
+    host: 5.6.7.8
+    pool: "{{ pool_name }}"
+    port: 80
+    rate_limit: 200
+    ratio: 1
+
+- name: Update node settings
+  bigip_node:
+    connection_limit: 100
+    description: my node
+    name: 5.6.7.8
+    rate_limit: 200
+    ratio: 1
+
+- name: Create test trunk
+  bigip_trunk:
+    name: trunk1
+    description: my trunk
+
+- name: Create a traffic group
+  bigip_device_traffic_group:
+    name: tg1
+
+- name: Create test virtual
+  bigip_virtual_server:
+    profiles:
+      - tcp
+    description: my virtual1
+    destination: 2.3.4.5
+    name: virtual1
+    port: 80
+    snat: Automap
+    enabled_vlans: "{{ vlan_name }}"
+
+- name: Create device group
+  bigip_device_group:
+    name: mydg1
+
+- name: Create route domain
+  bigip_routedomain:
+    name: foo
+    id: 100
+
+- name: Create a partition
+  bigip_partition:
+    name: part1

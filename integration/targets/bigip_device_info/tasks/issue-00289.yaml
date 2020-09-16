@@ -1,0 +1,94 @@
+---
+
+- name: Issue 00289 - Include issue variables
+  include_vars:
+    file: issue-00289.yaml
+
+- name: Issue 00289 - Provision ASM
+  bigip_provision:
+    name: asm
+  tags:
+    - module-provisioning
+
+- name: Issue 00289 - Create ASM policies
+  bigip_asm_policy_manage:
+    name: "asm-policy{{ item }}"
+    active: yes
+    state: present
+  with_sequence: start=1 end=3
+
+- name: Issue 00289 - Create published policy, w/asm, attached to virtual
+  bigip_policy:
+    name: "{{ policy_name }}1"
+    state: present
+  register: result
+
+- name: Issue 00289 - Create published rule, w/asm, attached to virtual
+  bigip_policy_rule:
+    policy: "{{ policy_name }}1"
+    name: rule1
+    actions:
+      - type: enable
+        asm_policy: "asm-policy1"
+
+- name: Issue 00289 - Create published policy, w/asm
+  bigip_policy:
+    name: "{{ policy_name }}2"
+    state: present
+  register: result
+
+- name: Issue 00289 - Create published rule, w/asm
+  bigip_policy_rule:
+    policy: "{{ policy_name }}2"
+    name: rule1
+    actions:
+      - type: enable
+        asm_policy: "asm-policy2"
+
+- name: Issue 00289 - Create a virtual server
+  bigip_virtual_server:
+    name: foo1
+    address: 1.1.1.1
+    port: 80
+    profiles:
+      - http
+      - websecurity
+    policies:
+      - "{{ policy_name }}1"
+
+- name: Issue 00289 - Select ASM policy stat facts
+  bigip_device_info:
+    include:
+      - asm-policy-stats
+  register: result
+
+- name: Issue 00289 - Assert Select ASM policy stat facts
+  assert:
+    that:
+      - result is success
+      - result.asm_policy_stats.policies == 3
+
+- name: Issue 00289 - Remove virtual server
+  bigip_virtual_server:
+    name: foo1
+    state: absent
+
+- name: Issue 00289 - Remove policies
+  bigip_policy:
+    name: "{{ policy_name }}{{ item }}"
+    state: absent
+  with_sequence: start=1 end=3
+
+- name: Issue 00289 - Remove ASM policies
+  bigip_asm_policy_manage:
+    name: "asm-policy{{ item }}"
+    state: absent
+  with_sequence: start=1 end=3
+
+- name: Issue 00289 - De-provision ASM
+  bigip_provision:
+    name: asm
+    state: absent
+  tags:
+    - module-provisioning
+    - deprovision-module
