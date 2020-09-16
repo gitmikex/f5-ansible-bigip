@@ -29,6 +29,8 @@ devtools/docker-compose.site.yaml
 # intergration test files
 test/integration/inventory/hosts
 test/integration/inventory/group_vars/all.yaml
+integration/inventory/hosts
+integration/inventory/group_vars/all.yaml
 ./ansible/
 tmp/*
 !tmp/.gitkeep
