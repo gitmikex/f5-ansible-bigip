@@ -1,0 +1,27 @@
+---
+
+- name: Create third pool - second device
+  bigip_command:
+    commands:
+      - tmsh create ltm pool issue-01361.pool
+  when: inventory_hostname == 'bigip2'
+
+- name: Assert Create pool
+  assert:
+    that:
+      - result is changed
+
+- name: Sync configuration from device to group - first device, expect failure
+  bigip_configsync_action:
+    device_group: "{{ device_group }}"
+    sync_device_to_group: yes
+  register: result
+  when: inventory_hostname == 'bigip1'
+  ignore_errors: yes
+  
+- name: Sync configuration from device to group - check for recommended sync message
+  assert:
+    that:
+      - result is failed
+      - result is not changed
+      - '"to group sdbt_sync_failover_dev_group" in result.msg'

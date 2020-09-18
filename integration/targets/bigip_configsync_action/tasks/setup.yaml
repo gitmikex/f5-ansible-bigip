@@ -1,0 +1,13 @@
+---
+
+- name: Cleanup failed runs - First device
+  bigip_command:
+    commands:
+      - tmsh delete ltm pool cs1.pool
+      - tmsh delete ltm pool cs2.pool
+      - tmsh delete ltm pool issue-01361.pool
+
+- name: Create pool
+  bigip_command:
+    commands:
+      - tmsh create ltm pool cs1.pool

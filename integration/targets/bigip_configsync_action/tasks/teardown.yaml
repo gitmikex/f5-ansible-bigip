@@ -1,0 +1,13 @@
+---
+
+- name: Delete pool - First device
+  bigip_command:
+    commands:
+      - tmsh delete ltm pool cs1.pool
+      - tmsh delete ltm pool cs2.pool
+      - tmsh delete ltm pool issue-01361.pool
+
+- name: Sync configuration from device to group
+  bigip_configsync_action:
+    device_group: "{{ device_group }}"
+    sync_device_to_group: yes
