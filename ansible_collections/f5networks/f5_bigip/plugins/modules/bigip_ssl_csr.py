@@ -54,17 +54,24 @@ author:
 '''
 
 EXAMPLES = r'''
+- hosts: all
+  collections:
+    - f5networks.f5_bigip
+  connection: httpapi
+
+  vars:
+    ansible_host: "lb.mydomain.com"
+    ansible_user: "admin"
+    ansible_httpapi_password: "secret"
+    ansible_network_os: f5networks.f5_bigip.bigip
+    ansible_httpapi_use_ssl: yes
+
 - name: Create an SSL csr
   bigip_ssl_csr:
     name: csr-name
     key_name: key-name
     common_name: csr-name
     dest: /tmp/csr-name
-    provider:
-      password: secret
-      server: lb.mydomain.com
-      user: admin
-  delegate_to: localhost
 '''
 
 RETURN = r'''

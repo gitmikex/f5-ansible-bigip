@@ -102,6 +102,9 @@ class HttpApi(HttpApiBase):
             # 404 errors need to be handled upstream due to exists methods relying on it.
             # Other codes will be raised by underlying connection plugin.
             return exc
+        if exc.code == 401:
+            self.connection._auth = None
+            return True
         return False
 
     def send_request(self, url, method=None, **kwargs):
@@ -179,7 +182,6 @@ class HttpApi(HttpApiBase):
                     file_slice = fileobj.read(chunk_size)
                     if not file_slice:
                         break
-
                     current_bytes = len(file_slice)
                     if current_bytes < chunk_size:
                         end = size
@@ -187,7 +189,8 @@ class HttpApi(HttpApiBase):
                         end = start + current_bytes
                     headers = {
                         'Content-Range': '%s-%s/%s' % (start, end - 1, size),
-                        'Content-Type': 'application/octet-stream'
+                        'Content-Type': 'application/octet-stream',
+                        'Connection': 'keep-alive'
                     }
                     self.connection.send(url, file_slice, method='POST', headers=headers)
                     start += current_bytes
@@ -224,7 +227,8 @@ class HttpApi(HttpApiBase):
                     content_range = "%s-%s/%s" % (start, end, size)
                     headers = {
                         'Content-Range': content_range,
-                        'Content-Type': 'application/octet-stream'
+                        'Content-Type': 'application/octet-stream',
+                        'Connection': 'keep-alive'
                     }
                     response, _ = self.connection.send(url, None, headers=headers)
                     if response.status == 200:

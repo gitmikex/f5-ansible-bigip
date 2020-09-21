@@ -1,0 +1,5 @@
+---
+
+- name: Save a UCS file locally for later usage
+  bigip_ucs_fetch:
+    dest: "{{ role_path }}/files/{{ ucs_name }}"
