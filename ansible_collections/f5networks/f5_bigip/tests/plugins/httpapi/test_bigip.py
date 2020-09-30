@@ -75,7 +75,7 @@ class TestBigIPHttpapi(TestCase):
         with self.assertRaises(AnsibleConnectionFailure) as res:
             self.connection.httpapi.login('foo', 'bar')
 
-        assert "Authentication process failed, server returned: HTTP Error 400" in str(res.exception)
+        assert "Authentication process failed, server returned: {'errorMessage': 'ERROR'}" in str(res.exception)
 
     def test_login_success_properties_populated(self):
         self.connection.send.return_value = connection_response(
@@ -102,7 +102,9 @@ class TestBigIPHttpapi(TestCase):
 
         self.connection.send.assert_called_once_with(
             '/fake/path/to/upload/test_binary_file.mock', ANY, method='POST',
-            headers={'Content-Range': '0-307199/307200', 'Content-Type': 'application/octet-stream'}
+            headers={'Content-Range': '0-307199/307200', 'Content-Type': 'application/octet-stream',
+                     'Connection': 'keep-alive'
+                     }
         )
 
     def test_upload_file_retry(self):
@@ -114,7 +116,9 @@ class TestBigIPHttpapi(TestCase):
 
         self.connection.send.assert_called_with(
             '/fake/path/to/upload/test_binary_file.mock', ANY, method='POST',
-            headers={'Content-Range': '0-307199/307200', 'Content-Type': 'application/octet-stream'}
+            headers={'Content-Range': '0-307199/307200', 'Content-Type': 'application/octet-stream',
+                     'Connection': 'keep-alive'
+                     }
         )
         assert self.connection.send.call_count == 2
 
@@ -135,7 +139,8 @@ class TestBigIPHttpapi(TestCase):
         self.connection.download_file('/fake/path/to/download/fakefile', '/tmp/fakefile')
         self.connection.send.assert_called_with('/fake/path/to/download/fakefile', None,
                                                 headers={'Content-Range': '0-99999/99999',
-                                                         'Content-Type': 'application/octet-stream'}
+                                                         'Content-Type': 'application/octet-stream',
+                                                         'Connection': 'keep-alive'}
                                                 )
         assert os.stat('/tmp/fakefile').st_size == 100000
         # clean up

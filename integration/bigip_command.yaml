@@ -10,13 +10,13 @@
 #
 # Usage:
 #
-#    ansible-playbook -i notahost, playbooks/bigip_command.yaml
+#    ansible-playbook -i notahost, integration/bigip_command.yaml
 #
 # Examples:
 #
 #    Run all tests on the bigip_software module
 #
-#    ansible-playbook -i notahost, playbooks/bigip_command.yaml
+#    ansible-playbook -i notahost, integration/bigip_command.yaml
 #
 
 - name: Test the bigip_wait module - REST

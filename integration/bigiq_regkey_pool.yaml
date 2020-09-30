@@ -10,13 +10,13 @@
 #
 # Usage:
 #
-#    ansible-playbook -i notahost, playbooks/bigiq_regkey_pool.yaml
+#    ansible-playbook -i notahost, integration/bigiq_regkey_pool.yaml
 #
 # Examples:
 #
 #    Run all tests on the bigiq_regkey_pool module
 #
-#    ansible-playbook -i notahost, playbooks/bigip_regkey_pool.yaml
+#    ansible-playbook -i notahost, integration/bigip_regkey_pool.yaml
 #
 
 - name: Test the bigip_regkey_pool module

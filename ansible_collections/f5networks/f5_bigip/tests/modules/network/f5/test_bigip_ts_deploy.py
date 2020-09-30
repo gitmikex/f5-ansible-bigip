@@ -11,11 +11,11 @@ import os
 
 from ansible.module_utils.basic import AnsibleModule
 
-from ansible_collections.f5networks.f5_bigip.plugins.modules.atc_deploy import (
-    Parameters, ArgumentSpec, ModuleManager, As3Manager
+from ansible_collections.f5networks.f5_bigip.plugins.modules.bigip_ts_deploy import (
+    Parameters, ArgumentSpec, ModuleManager
 )
 from ansible_collections.f5networks.f5_bigip.tests.compat import unittest
-from ansible_collections.f5networks.f5_bigip.tests.compat.mock import Mock, patch
+from ansible_collections.f5networks.f5_bigip.tests.compat.mock import Mock
 from ansible_collections.f5networks.f5_bigip.tests.modules.utils import set_module_args
 
 
@@ -44,33 +44,43 @@ def load_fixture(name):
 class TestParameters(unittest.TestCase):
     def test_module_parameters(self):
         args = dict(
-            service_type='as3',
             content=dict(param1='foo', param2='bar'),
-            as3_tenant='test_tenant',
-            state='present'
         )
         p = Parameters(params=args)
-        assert p.service_type == 'as3'
         assert p.content == dict(param1='foo', param2='bar')
-        assert p.as3_tenant == 'test_tenant'
 
 
 class TestManager(unittest.TestCase):
 
     def setUp(self):
         self.spec = ArgumentSpec()
-        self.patcher1 = patch('time.sleep')
-        self.patcher1.start()
 
-    def tearDown(self):
-        self.patcher1.stop()
-
-    def test_upsert_tenant_declaration(self, *args):
-        declaration = load_fixture('as3_declare.json')
+    def test_upsert_ts_declaration(self, *args):
+        declaration = load_fixture('ts_declaration.json')
         set_module_args(dict(
-            service_type='as3',
             content=declaration,
-            as3_tenant='Sample_01',
+            state='present'
+        ))
+
+        module = AnsibleModule(
+            argument_spec=self.spec.argument_spec,
+            supports_check_mode=self.spec.supports_check_mode,
+            required_if=self.spec.required_if
+        )
+        mm = ModuleManager(module=module)
+
+        # Override methods to force specific logic in the module to happen
+        mm.exists = Mock(return_value=False)
+        mm.upsert_on_device = Mock(return_value=True)
+
+        results = mm.exec_module()
+
+        assert results['changed'] is True
+
+    def test_upsert_ts_declaration_no_change(self, *args):
+        declaration = load_fixture('ts_declaration.json')
+        set_module_args(dict(
+            content=declaration,
             state='present',
         ))
 
@@ -79,22 +89,17 @@ class TestManager(unittest.TestCase):
             supports_check_mode=self.spec.supports_check_mode,
             required_if=self.spec.required_if
         )
-        m1 = As3Manager(module=module)
         mm = ModuleManager(module=module)
-        mm.get_manager = Mock(return_value=m1)
 
         # Override methods to force specific logic in the module to happen
-        m1.exists = Mock(return_value=False)
-        m1.upsert_on_device = Mock(return_value=True)
+        mm.read_from_device = Mock(return_value=load_fixture('ts_response.json'))
 
         results = mm.exec_module()
 
-        assert results['changed'] is True
+        assert results['changed'] is False
 
-    def test_remove_tenant_declaration(self, *args):
+    def test_remove_ts_declaration(self, *args):
         set_module_args(dict(
-            service_type='as3',
-            as3_tenant='Sample_01',
             state='absent',
         ))
 
@@ -103,14 +108,31 @@ class TestManager(unittest.TestCase):
             supports_check_mode=self.spec.supports_check_mode,
             required_if=self.spec.required_if
         )
-        m1 = As3Manager(module=module)
         mm = ModuleManager(module=module)
-        mm.get_manager = Mock(return_value=m1)
 
         # Override methods to force specific logic in the module to happen
-        m1.resource_exists = Mock(side_effect=[True, False])
-        m1.remove_from_device = Mock(return_value=True)
+        mm.read_from_device = Mock(return_value=load_fixture('ts_response.json'))
+        mm.remove_from_device = Mock(return_value=True)
 
         results = mm.exec_module()
 
         assert results['changed'] is True
+
+    def test_remove_ts_declaration_no_change(self, *args):
+        set_module_args(dict(
+            state='absent',
+        ))
+
+        module = AnsibleModule(
+            argument_spec=self.spec.argument_spec,
+            supports_check_mode=self.spec.supports_check_mode,
+            required_if=self.spec.required_if
+        )
+        mm = ModuleManager(module=module)
+
+        # Override methods to force specific logic in the module to happen
+        mm.read_from_device = Mock(return_value=load_fixture('ts_deleted_response.json'))
+
+        results = mm.exec_module()
+
+        assert results['changed'] is False

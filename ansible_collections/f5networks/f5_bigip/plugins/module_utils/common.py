@@ -398,8 +398,6 @@ class AnsibleF5Parameters:
 class ImishConfig(NetworkConfig):
     def add(self, lines, parents=None, duplicates=False):
         ancestors = list()
-        offset = 0
-        obj = None
 
         # global config command
         if not parents:

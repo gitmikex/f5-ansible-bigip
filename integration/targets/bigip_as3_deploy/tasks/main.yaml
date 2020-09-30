@@ -1,0 +1,145 @@
+---
+
+- name: Declaration with 2 Tenants
+  bigip_as3_deploy:
+    content: "{{ lookup('file', 'two_tenants.json') }}"
+  register: result
+
+- name: Assert Declaration with 2 Tenants
+  assert:
+    that:
+      - result is changed
+      - result is success
+
+- name: Declaration with 2 Tenants - Idempotent check
+  bigip_as3_deploy:
+    content: "{{ lookup('file', 'two_tenants.json') }}"
+  register: result
+
+- name: Assert Declaration with 2 Tenants - Idempotent check
+  assert:
+    that:
+      - result is not changed
+      - result is success
+
+- name: Declaration change with 2 Tenants
+  bigip_as3_deploy:
+    content: "{{ lookup('file', 'two_tenants_changed.json') }}"
+  register: result
+
+- name: Assert Declaration change with 2 Tenants
+  assert:
+    that:
+      - result is changed
+      - result is success
+
+- name: Declaration change with 2 Tenants - Idempotent check
+  bigip_as3_deploy:
+    content: "{{ lookup('file', 'two_tenants_changed.json') }}"
+  register: result
+
+- name: Assert Declaration change with 2 Tenants - Idempotent check
+  assert:
+    that:
+      - result is not changed
+      - result is success
+
+- name: Remove one tenant
+  bigip_as3_deploy:
+    tenant: "Sample_01"
+    state: absent
+  register: result
+
+- name: Assert Remove one tenant
+  assert:
+    that:
+      - result is changed
+      - result is success
+
+- name: Remove one tenant - Idempotent check
+  bigip_as3_deploy:
+    tenant: "Sample_01"
+    state: absent
+  register: result
+
+- name: Assert Remove one tenant - Idempotent check
+  assert:
+    that:
+      - result is not changed
+      - result is success
+
+- name: Declaration with one tenant
+  bigip_as3_deploy:
+    content: "{{ lookup('file', 'one_tenant.json') }}"
+  register: result
+
+- name: Assert Declaration with one tenant
+  assert:
+    that:
+      - result is changed
+      - result is success
+
+- name: Declaration with one tenant - Idempotent check
+  bigip_as3_deploy:
+    content: "{{ lookup('file', 'one_tenant.json') }}"
+  register: result
+
+- name: Assert Declaration with one tenant - Idempotent check
+  assert:
+    that:
+      - result is not changed
+      - result is success
+
+- name: Remove all tenants
+  bigip_as3_deploy:
+    tenant: "all"
+    state: absent
+  register: result
+
+- name: Assert Remove all tenants
+  assert:
+    that:
+      - result is changed
+      - result is success
+
+- name: Remove all tenants - Idempotent check
+  bigip_as3_deploy:
+    tenant: "all"
+    state: absent
+  register: result
+
+- name: Assert Remove all tenants - Idempotent check
+  assert:
+    that:
+      - result is not changed
+      - result is success
+
+- name: Declaration produces tmos errors
+  bigip_as3_deploy:
+    content: "{{ lookup('file', 'as3_produce_tmos_errors.json') }}"
+  register: result
+  failed_when: result is success
+
+- name: Assert Declaration produces tmos errors
+  assert:
+    that:
+      - result is not changed
+      - "'static address 192.0.1.12 conflicts with bigip node /Sample_01/192.0.1.12' in result.msg"
+
+- name: Remove partial tenants
+  bigip_as3_deploy:
+    tenant: "all"
+    state: absent
+  register: result
+
+- name: Declaration produces schema errors
+  bigip_as3_deploy:
+    content: "{{ lookup('file', 'as3_produce_schema_errors.json') }}"
+  register: result
+  failed_when: result is success
+
+- name: Assert Declaration produces schema errors
+  assert:
+    that:
+      - result is not changed
+      - "'declaration is invalid' in result.msg"

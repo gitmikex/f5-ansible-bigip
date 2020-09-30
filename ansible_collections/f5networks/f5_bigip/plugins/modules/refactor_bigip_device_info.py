@@ -7337,14 +7337,14 @@ from collections import namedtuple
 from distutils.version import LooseVersion
 
 
-from ..module_utils.client import F5Client
+from ..module_utils.client import (
+    F5Client, tmos_version, modules_provisioned
+)
 from ..module_utils.common import (
-    F5ModuleError, AnsibleF5Parameters, transform_name, f5_argument_spec, flatten_boolean, fq_name
+    F5ModuleError, AnsibleF5Parameters, transform_name, flatten_boolean, fq_name
 )
 from ..module_utils.urls import parseStats
-from ..module_utils.icontrol import (
-    tmos_version, modules_provisioned
-)
+
 from ..module_utils.ipaddress import is_valid_ip
 
 

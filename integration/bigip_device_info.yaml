@@ -10,13 +10,13 @@
 #
 # Usage:
 #
-#    ansible-playbook -i notahost, playbooks/bigip_device_info.yaml
+#    ansible-playbook -i notahost, integration/bigip_device_info.yaml
 #
 # Examples:
 #
 #    Run all tests on the bigip_device_info module
 #
-#    ansible-playbook -i notahost, playbooks/bigip_device_info.yaml
+#    ansible-playbook -i notahost, integration/bigip_device_info.yaml
 #
 
 - name: Test the bigip_device_info module

@@ -10,13 +10,13 @@
 #
 # Usage:
 #
-#    ansible-playbook -i notahost, playbooks/bigip_lx_package.yaml
+#    ansible-playbook -i notahost, integration/bigip_lx_package.yaml
 #
 # Examples:
 #
 #    Run all tests on the bigip_lx_package module
 #
-#    ansible-playbook -i notahost, playbooks/bigip_lx_package.yaml
+#    ansible-playbook -i notahost, integration/bigip_lx_package.yaml
 #
 
 - name: Test the bigip_lx_package module

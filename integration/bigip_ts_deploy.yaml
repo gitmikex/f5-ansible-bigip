@@ -1,29 +1,30 @@
 ---
 
-# Test the bigip_configsync_action module
+# Test the bigip_ts_deploy module
 #
 # Running this playbook assumes that you have a BIG-IP installation at the
 # ready to receive the commands issued in this Playbook.
 #
 # This module will run tests against a BIG-IP host to verify that the
-# bigip_configsync_action module behaves as expected.
+# bigip_ts_deploy module behaves as expected.
 #
 # Usage:
 #
-#    ansible-playbook -i notahost, integration/bigip_configsync_action.yaml
+#    ansible-playbook -i notahost, integration/bigip_ts_deploy.yaml
 #
 # Examples:
 #
-#    Run all tests on the bigip_configsync_action module
+#    Run all tests on the bigip_ts_deploy module
 #
-#    ansible-playbook -i notahost, integration/bigip_configsync_action.yaml
+#    ansible-playbook -i notahost, integration/bigip_ts_deploy.yaml
 #
 
 
-- name: Test the bigip_configsync_action module
-  hosts: "f5-test"
+- name: Test the bigip_ts_deploy module
+  hosts: "f5-test[0]"
   connection: httpapi
   any_errors_fatal: true
+
 
   vars:
     ansible_user: "{{ lookup('env','F5_USER') }}"
@@ -33,9 +34,8 @@
     ansible_httpapi_use_proxy: false
     ansible_httpapi_validate_certs: "{{ lookup('env','F5_VALIDATE_CERTS') }}"
     ansible_httpapi_port: "{{ lookup('env','F5_SERVER_PORT') }}"
-    ansible_command_timeout: 1800
-    persistent_log_messages: false
+    persistent_log_messages: true
     f5_telemetry: false
 
   roles:
-    - bigip_configsync_action
+    - bigip_ts_deploy

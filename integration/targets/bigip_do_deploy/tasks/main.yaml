@@ -1,64 +1,59 @@
 ---
-- name: Simple declaration no restart - DO
-  atc_deploy:
+- name: Simple declaration no restart
+  bigip_do_deploy:
     content: "{{ lookup('file', 'do_simple_no_restart.json') }}"
-    service_type: "do"
   register: result
 
-- name: Assert Simple declaration no restart- DO
+- name: Assert Simple declaration no restart
   assert:
     that:
       - result is changed
       - result is success
-      -
-      # module is not idempotent due to DO bug, these tests are just placeholders for when DO is fixed.
-- name: Simple declaration no restart - DO - Idempotent check
-  atc_deploy:
+
+# module is not idempotent due to DO bug, these tests are just placeholders for when DO is fixed.
+- name: Simple declaration no restart - Idempotent check
+  bigip_do_deploy:
     content: "{{ lookup('file', 'do_simple_no_restart.json') }}"
-    service_type: "do"
   register: result
 
 # module is not idempotent due to DO bug, these tests are just placeholders for when DO is fixed.
-- name: Assert Simple declaration no restart - DO - Idempotent check
+- name: Assert Simple declaration no restart - Idempotent check
   assert:
     that:
       - result is changed
       - result is success
 
-- name: Provision restart - DO
-  atc_deploy:
+- name: Provision restart
+  bigip_do_deploy:
     content: "{{ lookup('file', 'do_provision_restart.json') }}"
-    service_type: "do"
   register: result
 
-- name: Assert Provision restart - DO
+- name: Assert Provision restart
   assert:
     that:
       - result is changed
       - result is success
 
 # module is not idempotent due to DO bug, these tests are just placeholders for when DO is fixed.
-- name: Provision restart - DO - Idempotent check
-  atc_deploy:
+- name: Provision restart - Idempotent check
+  bigip_do_deploy:
     content: "{{ lookup('file', 'do_provision_restart.json') }}"
-    service_type: "do"
   register: result
 
 # module is not idempotent due to DO bug, these tests are just placeholders for when DO is fixed.
-- name: Assert Provision restart - DO - Idempotent check
+- name: Assert Provision restart - Idempotent check
   assert:
     that:
       - result is changed
       - result is success
 
-- name: Declaration produces errors - DO
-  atc_deploy:
+- name: Declaration produces errors
+  bigip_do_deploy:
     content: "{{ lookup('file', 'do_produce_errors.json') }}"
-    service_type: "do"
   register: result
   failed_when: result is success
 
-- name: Assert Declaration produces errors - DO
+- name: Assert Declaration produces errors
   assert:
     that:
       - result is not changed

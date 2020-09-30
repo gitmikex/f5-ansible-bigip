@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2017 F5 Networks Inc.
+# Copyright (c) 2020 F5 Networks Inc.
 # GNU General Public License v3.0 (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
+import copy
 from ansible.module_utils.six import iteritems
 
 
@@ -82,3 +83,34 @@ def compare_dictionary(want, have):
         return None
     else:
         return want
+
+
+def nested_diff(want, have, invalid):
+    """ Performs any() type operation on nested dictionaries
+
+        Args:
+            want (dict): Dictionary to compare with second parameter.
+            have (dict): Dictionary to compare with first parameter.
+            invalid (list): List of keys to be ignored when comparing.
+
+        Returns:
+            bool:
+
+    """
+    if have is None:
+        return True
+    if want is None:
+        return False
+    for k in want:
+        if k not in have:
+            return True
+        else:
+            if type(want[k]) is dict:
+                if nested_diff(want[k], have[k], invalid):
+                    return True
+            else:
+                if k in invalid:
+                    continue
+                if want[k] != have[k]:
+                    return True
+    return False

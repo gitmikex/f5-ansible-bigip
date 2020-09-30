@@ -24,14 +24,14 @@
       - result is changed
       - result is success
 
-- name: Declaration produces errors - CFE
+- name: Declaration produces errors
   atc_deploy:
-    content: "{{ lookup('file', 'ts_failure.json') }}"
+    content: "{{ lookup('file', 'failover_failure.json') }}"
     service_type: "cfe"
   register: result
   failed_when: result is success
 
-- name: Assert Declaration produces errors - TS
+- name: Assert Declaration produces errors
   assert:
     that:
       - result is not changed

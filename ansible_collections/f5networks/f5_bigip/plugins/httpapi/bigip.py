@@ -119,8 +119,8 @@ class HttpApi(HttpApiBase):
                 contents=self._response_to_json(response_value),
                 headers=response.getheaders()
             )
-        except HTTPError as exc:
-            return dict(code=exc.code, contents=to_text(exc))
+        except HTTPError as e:
+            return dict(code=e.code, contents=json.loads(e.read()))
 
     def upload_file(self, url, src, dest=None):
         """Upload a file to an arbitrary URL.

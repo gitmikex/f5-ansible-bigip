@@ -10,22 +10,12 @@ __metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
-module: atc_deploy
-short_description: Manages ATC declarations sent to BIG-IP
+module: bigip_as3_deploy
+short_description: Manages AS3 declarations sent to BIG-IP
 description:
-  - Manages ATC declarations sent to BIG-IP.
+  - Manages AS3 declarations sent to BIG-IP.
 version_added: "1.0.0"
 options:
-  service_type:
-    description:
-      - Specifies the type of declaration to manage.
-    type: str
-    required: True
-    choices:
-      - as3
-      - do
-      - ts
-      - cfe
   content:
     description:
       - Declaration to be configured on the system.
@@ -42,24 +32,26 @@ options:
         the purpose of that filter is to format the JSON to be human-readable and this process
         includes inserting "extra characters that break JSON validators.
     type: raw
-  as3_tenant:
+  tenant:
     description:
-      - An as3_tenant you wish to manage.
-      - This parameter is only relevant when C(service_type) is C(as3), it will be ignored otherwise.
+      - An AS3 tenant you wish to manage.
       - A value of C(all) or no value when C(state) is C(absent) will remove all as3 declarations from device.
     type: str
+  timeout:
+    description:
+      - The amount of time in seconds to wait for the AS3 async interface to complete its task.
+      - The accepted value range is between C(10) and C(1800) seconds.
+      type: int
+      default: 300
   state:
     description:
       - When C(state) is C(present), ensures the declaration is exists.
-      - When C(state) is C(absent), ensures that the declaration is removed. The C(absent) state is only used when
-        C(service_type) is C(as3), it will be ignored otherwise.
+      - When C(state) is C(absent), ensures that the declaration is removed.
     type: str
     choices:
       - present
       - absent
     default: present
-notes:
-  - Due to limitations of the ATC packages, the module is not idempotent when C(service_type) is other than C(as3).
 author:
   - Wojciech Wypior (@wojtek0806)
 '''
@@ -91,18 +83,13 @@ EXAMPLES = r'''
 '''
 
 RETURN = r'''
-service_type:
-  description: The type of declaration sent to system.
-  returned: changed
-  type: str
-  sample: as3
 content:
   description: The declaration sent to the system.
   returned: changed
   type: raw
   sample: hash/dictionary of values
-as3_tenant:
-  description: The as3_tenant to be managed.
+tenant:
+  description: The AS3 tenant to be managed.
   returned: changed
   type: str
   sample: foobar1
@@ -131,7 +118,6 @@ class Parameters(AnsibleF5Parameters):
     returnables = [
         'content',
         'tenant',
-        'service_type',
     ]
 
 
@@ -151,9 +137,23 @@ class ModuleParameters(Parameters):
 
     @property
     def tenant(self):
-        if self._values['as3_tenant'] in [None, 'all']:
+        if self._values['tenant'] in [None, 'all']:
             return None
-        return self._values['as3_tenant']
+        return self._values['tenant']
+
+    @property
+    def timeout(self):
+        divisor = 10
+        timeout = self._values['timeout']
+        if timeout < 10 or timeout > 1800:
+            raise F5ModuleError(
+                "Timeout value must be between 0 and 1800 seconds."
+            )
+        if timeout > 99:
+            divisor = 100
+        delay = timeout/divisor
+
+        return int(delay), divisor
 
 
 class Changes(Parameters):
@@ -176,7 +176,7 @@ class ReportableChanges(Changes):
     pass
 
 
-class BaseManager(object):
+class ModuleManager(object):
     def __init__(self, *args, **kwargs):
         self.module = kwargs.get('module', None)
         self.connection = kwargs.get('connection', None)
@@ -200,30 +200,6 @@ class BaseManager(object):
                 version=warning['version']
             )
 
-    def _check_task_on_device(self, path):
-        response = self.client.get(path)
-        if response['code'] not in [200, 201, 202]:
-            raise F5ModuleError(response['contents'])
-        return response['contents']
-
-    def exec_module(self):
-        result = dict()
-
-        changed = self.upsert()
-
-        result.update(dict(changed=changed))
-        self._announce_deprecations(result)
-        return result
-
-    def upsert(self):
-        self._set_changed_options()
-        if self.module.check_mode:
-            return True
-        result = self.upsert_on_device()
-        return result
-
-
-class As3Manager(BaseManager):
     def exec_module(self):
         changed = False
         result = dict()
@@ -235,6 +211,13 @@ class As3Manager(BaseManager):
             changed = self.absent()
 
         result.update(dict(changed=changed))
+        return result
+
+    def upsert(self):
+        self._set_changed_options()
+        if self.module.check_mode:
+            return True
+        result = self.upsert_on_device()
         return result
 
     def present(self):
@@ -297,7 +280,14 @@ class As3Manager(BaseManager):
                     results += message['errors']
         return results
 
+    def _check_task_on_device(self, path):
+        response = self.client.get(path)
+        if response['code'] not in [200, 201, 202]:
+            raise F5ModuleError(response['contents'])
+        return response['contents']
+
     def upsert_on_device(self):
+        interval, period = self.want.timeout
         if self.want.tenant:
             uri = "/mgmt/shared/appsvcs/declare/{0}?async=true".format(self.want.tenant)
         else:
@@ -308,12 +298,12 @@ class As3Manager(BaseManager):
         if response['code'] not in [200, 201, 202, 204, 207]:
             raise F5ModuleError(response['contents'])
 
-        task = self.wait_for_task("/mgmt/shared/appsvcs/task/{0}".format(response['contents']['id']))
+        task = self.wait_for_task("/mgmt/shared/appsvcs/task/{0}".format(response['contents']['id']), period, interval)
         if task:
             return any(msg.get('message', None) != 'no change' for msg in task['results'])
 
-    def wait_for_task(self, path):
-        for x in range(0, 900):
+    def wait_for_task(self, path, period, interval):
+        for x in range(0, period):
             task = self._check_task_on_device(path)
             errors = self._get_errors_from_response(task)
             if errors:
@@ -321,8 +311,8 @@ class As3Manager(BaseManager):
                 raise F5ModuleError(message)
             if any([msg.get('message', None) != 'in progress' for msg in task['results']]):
                 return task
-            time.sleep(1)
-        return False
+            time.sleep(interval)
+        raise F5ModuleError('Operation timed out.')
 
     def resource_exists(self):
         if self.want.tenant:
@@ -339,6 +329,7 @@ class As3Manager(BaseManager):
         return True
 
     def remove_from_device(self):
+        interval, period = self.want.timeout
         if self.want.tenant:
             uri = "/mgmt/shared/appsvcs/declare/{0}?async=true".format(self.want.tenant)
         else:
@@ -349,122 +340,21 @@ class As3Manager(BaseManager):
         if response['code'] not in [200, 201, 202, 204, 207]:
             raise F5ModuleError(response['contents'])
 
-        task = self.wait_for_task("/mgmt/shared/appsvcs/task/{0}".format(response['contents']['id']))
+        task = self.wait_for_task("/mgmt/shared/appsvcs/task/{0}".format(response['contents']['id']), period, interval)
         if task:
             return any(msg.get('message', None) != 'no change' for msg in task['results'])
-
-
-class DoManager(BaseManager):
-    def _get_errors_from_response(self, message):
-        results = []
-        if 'message' in message and message['message'] == 'invalid config - rolling back':
-            results.append(message['message'])
-        if 'errors' in message:
-            results += message['errors']
-        return results
-
-    def upsert_on_device(self):
-        uri = "/mgmt/shared/declarative-onboarding/declare"
-        response = self.client.post(uri, data=self.want.content)
-
-        if response['code'] not in [200, 201, 202, 204, 207]:
-            raise F5ModuleError(response['contents'])
-
-        task = self.wait_for_task("/mgmt/shared/declarative-onboarding/task/{0}".format(response['contents']['id']))
-        if task:
-            if 'message' in task['result'] and task['result']['message'] == 'success':
-                return True
-            return False
-
-    def wait_for_task(self, path):
-        for x in range(0, 200):
-            response = self.client.get(path)
-            # DO will not be consistent as it will throw: 404, 400, 401 or 503 error codes in no
-            # particular order due to services restarting.
-            if response['code'] in [400, 401, 404, 503]:
-                self.wait_for_device_to_be_ready()
-                response = self.client.get(path)
-            if response['code'] in [200, 201, 202]:
-                errors = self._get_errors_from_response(response['contents'])
-                if errors:
-                    message = "{0}".format('. '.join(errors))
-                    raise F5ModuleError(message)
-                if response['contents']['result']['status'] != 'RUNNING':
-                    return response['contents']
-            time.sleep(15)
-
-    def wait_for_device_to_be_ready(self):
-        while True:
-            response = self.client.get('/mgmt/shared/declarative-onboarding/available')
-            if response['code'] == 200:
-                break
-            time.sleep(20)
-
-
-class TsManager(BaseManager):
-    def upsert_on_device(self):
-        uri = "/mgmt/shared/telemetry/declare"
-        response = self.client.post(uri, data=self.want.content)
-
-        if response['code'] not in [200, 201, 202]:
-            raise F5ModuleError(response['contents'])
-
-        if response['contents']['message'] == 'success':
-            return True
-        return False
-
-
-class FailoverManager(BaseManager):
-    def upsert_on_device(self):
-        uri = "/mgmt/shared/cloud-failover/declare"
-        response = self.client.post(uri, data=self.want.content)
-
-        if response['code'] not in [200, 201, 202]:
-            raise F5ModuleError(response['contents'])
-
-        if response['contents']['message'] == 'success':
-            return True
-        return False
-
-
-class ModuleManager(object):
-    def __init__(self, *args, **kwargs):
-        self.module = kwargs.get('module', None)
-        self.kwargs = kwargs
-
-    def exec_module(self):
-        if self.module.params['service_type'] == 'as3':
-            manager = self.get_manager('as3')
-        if self.module.params['service_type'] == 'do':
-            manager = self.get_manager('do')
-        if self.module.params['service_type'] == 'ts':
-            manager = self.get_manager('ts')
-        if self.module.params['service_type'] == 'cfe':
-            manager = self.get_manager('cfe')
-
-        return manager.exec_module()
-
-    def get_manager(self, type):
-        if type == 'as3':
-            return As3Manager(**self.kwargs)
-        if type == 'do':
-            return DoManager(**self.kwargs)
-        if type == 'ts':
-            return TsManager(**self.kwargs)
-        if type == 'cfe':
-            return FailoverManager(**self.kwargs)
 
 
 class ArgumentSpec(object):
     def __init__(self):
         self.supports_check_mode = True
         argument_spec = dict(
-            service_type=dict(
-                required=True,
-                choices=['as3', 'do', 'ts', 'cfe']
-            ),
             content=dict(type='raw'),
-            as3_tenant=dict(),
+            tenant=dict(),
+            timeout=dict(
+                type='int',
+                default=300
+            ),
             state=dict(
                 default='present',
                 choices=['present', 'absent']
