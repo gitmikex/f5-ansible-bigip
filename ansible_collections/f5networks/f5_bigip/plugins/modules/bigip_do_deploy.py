@@ -37,6 +37,7 @@ options:
       - The amount of time in seconds to wait for the DO async interface to complete its task.
       - The accepted value range is between C(300) and C(3600) seconds.
       - If the device needs to restart the defined timeout will be extended.
+      - The hard timeout to wait for device reboot is 1800 seconds.
       type: int
       default: 300
 notes:
@@ -270,7 +271,7 @@ class ModuleManager(object):
         return True
 
     def wait_for_device_reboot(self):
-        while True:
+        for x in range(0, 360):
             time.sleep(5)
             try:
                 self.client.reconnect()
