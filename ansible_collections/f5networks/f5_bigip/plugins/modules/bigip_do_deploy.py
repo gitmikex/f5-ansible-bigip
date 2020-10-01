@@ -283,7 +283,7 @@ class ModuleManager(object):
                 # reboot) the REST client will raise exceptions about
                 # connections
                 pass
-        raise F5ModuleError('Reboot timeout limit exceeded 1800 seconds.')
+        raise F5ModuleError('Reboot wait timeout limit exceeded 1800 seconds.')
 
 
 class ArgumentSpec(object):
