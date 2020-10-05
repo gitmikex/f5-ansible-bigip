@@ -6,7 +6,7 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-
+import json
 import sys
 import uuid
 import re
@@ -52,25 +52,28 @@ class TeemClient:
             'telemetryId': str(uuid.uuid4()),
             'telemetryRecords': telemetry
         }
+
         return url, headers, data
 
     def send(self):
         url, headers, data = self.prepare_request()
+        payload = json.dumps(data)
         try:
-            self.f5client.plugin._display_message('F5 TEEM phone home with data: {0}'.format(data))
             response = open_url(
                 url=url,
                 method='POST',
                 headers=headers,
                 timeout=TEEM_TIMEOUT,
                 validate_certs=TEEM_VERIFY,
-                data=data
+                data=payload
             )
         except HTTPError as e:
             raise
         ok = re.search(r'20[01-4]', str(response.code))
+
         if ok:
-            self.f5client.plugin._display_message('TEEM Data sent successfully.')
+            return True
+        return False
 
     def build_telemetry(self):
         module_name = self.f5client.module_name

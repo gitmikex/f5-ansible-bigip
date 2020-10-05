@@ -50,12 +50,8 @@ class F5Client:
         return self.plugin.send_request(url, method='PUT', data=data, headers=BASE_HEADERS, **kwargs)
 
     @property
-    def telemetry(self):
-        return self.plugin._telemetry()
-
-    @property
     def platform(self):
-        network_os = self.plugin._network_os()
+        network_os = self.plugin.network_os()
         if network_os.split('.')[2] == 'bigip':
             version = tmos_version(self)
         else:
@@ -128,7 +124,7 @@ def modules_provisioned(client):
 
 def send_teem(client, start_time):
     """ Sends Teem Data if allowed."""
-    if client.telemetry:
+    if client.plugin.telemetry():
         teem = TeemClient(client, start_time)
         teem.send()
     else:

@@ -184,10 +184,10 @@ class HttpApi(HttpApiBase):
         result = self.send_request('/info/system', method='GET')
         return result['contents']
 
-    def _telemetry(self):
-        return self.get_option('telemetry')
+    def telemetry(self):
+        return self.get_option('send_telemetry')
 
-    def _network_os(self):
+    def network_os(self):
         return self.connection._network_os
 
     @staticmethod

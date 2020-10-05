@@ -286,8 +286,8 @@ class HttpApi(HttpApiBase):
         except ValueError:
             raise F5ModuleError('Invalid JSON response: %s' % response_text)
 
-    def _telemetry(self):
-        return self.get_option('telemetry')
+    def telemetry(self):
+        return self.get_option('send_telemetry')
 
-    def _network_os(self):
+    def network_os(self):
         return self.connection._network_os
