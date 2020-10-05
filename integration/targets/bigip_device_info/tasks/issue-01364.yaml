@@ -12,14 +12,9 @@
       - result is success
 
 - name: Issue 01364 - Create an admin user
-  bigip_user:
-    partition_access:
-      - all:admin
-    username_credential: "{{ username_credential }}"
-    password_credential: "{{ password_credential }}"
-    update_password: on_create
-    shell: "{{ shell }}"
-  register: result
+  bigip_command:
+    commands:
+      - 'tmsh create auth user {{ username_credential }} password {{ password_credential }} partition-access add { all-partitions { role admin } } shell {{ shell }}'
 
 - name: Issue 01364 - Select users facts
   bigip_device_info:
@@ -32,3 +27,8 @@
     that:
       - result is success
       - result.users | selectattr("name", "match", "johnd") | map(attribute='shell') | first == 'bash'
+
+- name: Issue 01364 - Delete admin user
+  bigip_command:
+    commands:
+      - 'tmsh create auth user {{ username_credential }}'

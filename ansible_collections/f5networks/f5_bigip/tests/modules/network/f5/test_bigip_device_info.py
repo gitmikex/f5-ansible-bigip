@@ -63,7 +63,7 @@ class TestManager(unittest.TestCase):
     def setUp(self):
         self.spec = ArgumentSpec()
 
-        self.p1 = patch('ansible_collections.f5networks.f5_modules.plugins.modules.bigip_device_info.modules_provisioned')
+        self.p1 = patch('ansible_collections.f5networks.f5_bigip.plugins.modules.bigip_device_info.modules_provisioned')
         self.m1 = self.p1.start()
         self.m1.return_value = ['ltm', 'gtm', 'asm']
 

@@ -1,5 +1,7 @@
 ---
 # A number of these tests are platform specific so the assertions will fail on different devices, these tests need a rework at some stage when we automated them to be checking against device inventory facts.
+# The commented out tests require more rework as they reference non existent modules.
+
 - import_tasks: setup.yaml
 
 - name: Select multiple facts
@@ -431,71 +433,71 @@
 - import_tasks: issue-00149.yaml
   tags: issue-00149
 
-- import_tasks: issue-00289.yaml
-  tags: issue-00289
+#- import_tasks: issue-00289.yaml
+#  tags: issue-00289
 
-- import_tasks: issue-00327.yaml
-  tags: issue-00327
+#- import_tasks: issue-00327.yaml
+#  tags: issue-00327
 
 - import_tasks: issue-00700.yaml
   tags: issue-00700
 
-- import_tasks: issue-00799.yaml
-  tags:
-    - issue-00799
-    - vcmp-no-slots
-    - vcmp-slots
+#- import_tasks: issue-00799.yaml
+#  tags:
+#    - issue-00799
+#    - vcmp-no-slots
+#    - vcmp-slots
 
 - import_tasks: issue-00819.yaml
   tags: issue-00819
 
-- import_tasks: issue-00897.yaml
-  tags: issue-00897
+#- import_tasks: issue-00897.yaml
+#  tags: issue-00897
 
 - import_tasks: issue-01017.yaml
   tags: issue-01017
 
-- import_tasks: issue-01091.yaml
-  tags: issue-01091
+#- import_tasks: issue-01091.yaml
+# tags: issue-01091
 
-- import_tasks: issue-01094.yaml
-  tags: issue-01094
+#- import_tasks: issue-01094.yaml
+#  tags: issue-01094
 
-- import_tasks: issue-01095.yaml
-  tags: issue-01095
+#- import_tasks: issue-01095.yaml
+#  tags: issue-01095
 
 - import_tasks: issue-01159.yaml
   tags: issue-01159
 
-- import_tasks: issue-01191.yaml
-  tags: issue-01191
+#- import_tasks: issue-01191.yaml
+#  tags: issue-01191
 
-- import_tasks: issue-01321.yaml
-  tags: issue-01321
+#- import_tasks: issue-01321.yaml
+#  tags: issue-01321
 
-- import_tasks: issue-01391.yaml
-  tags: issue-01391
+#- import_tasks: issue-01391.yaml
+#  tags: issue-01391
 
 - import_tasks: issue-01364.yaml
   tags: issue-01364
 
-- import_tasks: issue-01423.yaml
-  tags: issue-01423
+#- import_tasks: issue-01423.yaml
+# tags: issue-01423
 
-- import_tasks: issue-01497.yaml
-  tags: issue-01497
+#- import_tasks: issue-01497.yaml
+#  tags: issue-01497
 
-- import_tasks: issue-01563.yaml
-  tags: issue-01563
+#- import_tasks: issue-01563.yaml
+#  tags: issue-01563
 
 - import_tasks: issue-01596.yaml
   tags: issue-01596
 
-- import_tasks: issue-01630.yaml
-  tags: issue-01630
+#- import_tasks: issue-01630.yaml
+#  tags: issue-01630
 
-- import_tasks: issue-01757.yaml
-  tags: issue-01757
+#- import_tasks: issue-01757.yaml
+#  tags: issue-01757
 
 - import_tasks: issue-01778.yaml
   tags: issue-01778
