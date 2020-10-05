@@ -23,9 +23,14 @@ PLATFORM = {
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
+# This collection version needs to be updated at each release
 CURRENT_COLL_VERSION = '1.0'
 
-TEEM_ENDPOINT = 'product.apis.f5.com',
+# TODO: Remove other endpoints and set prod when collection is live
+
+#TEEM_ENDPOINT_PROD = 'product.apis.f5.com',
+TEEM_ENDPOINT = 'product-stg.apis.f5networks.net'
+#TEST_TEEM_ENDPOINT = 'product-tst.apis.f5networks.net'
 TEEM_KEY = 'mmhJU2sCd63BznXAXDh4kxLIyfIMm3Ar'
 TEEM_TIMEOUT = 10
 TEEM_VERIFY = True

@@ -56,10 +56,13 @@ param2:
   sample: Foo is bar
 '''
 
+from datetime import datetime
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.connection import Connection
 
-from ..module_utils.client import F5Client
+from ..module_utils.client import (
+    F5Client, send_teem
 from ..module_utils.common import (
     F5ModuleError, AnsibleF5Parameters,
 )
@@ -177,6 +180,7 @@ class ModuleManager(object):
             )
 
     def exec_module(self):
+        start = datetime.now().isoformat()
         changed = False
         result = dict()
         state = self.want.state
@@ -191,6 +195,7 @@ class ModuleManager(object):
         result.update(**changes)
         result.update(dict(changed=changed))
         self._announce_deprecations(result)
+        send_teem(self.client, start)
         return result
 
     def present(self):
