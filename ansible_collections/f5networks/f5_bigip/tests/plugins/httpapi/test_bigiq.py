@@ -140,5 +140,5 @@ class TestBigIPHttpapi(TestCase):
         self.connection.httpapi.get_option = mock_response
         self.connection.httpapi.get_option.return_value = False
 
-        assert self.connection.httpapi._telemetry() is False
-        assert self.connection.httpapi._network_os() == self.pc.network_os
+        assert self.connection.httpapi.telemetry() is False
+        assert self.connection.httpapi.network_os() == self.pc.network_os
