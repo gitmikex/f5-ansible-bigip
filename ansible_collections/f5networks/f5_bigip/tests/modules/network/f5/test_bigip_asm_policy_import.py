@@ -10,10 +10,10 @@ import os
 import json
 
 from ansible.module_utils.basic import AnsibleModule
-
-from ansible_collections.f5networks.f5_bigip.plugins.modules.bigip_apm_policy_import import (
+from ansible_collections.f5networks.f5_bigip.plugins.modules.bigip_asm_policy_import import (
     ModuleParameters, ModuleManager, ArgumentSpec
 )
+
 from ansible_collections.f5networks.f5_bigip.tests.compat import unittest
 from ansible_collections.f5networks.f5_bigip.tests.compat.mock import Mock, patch
 from ansible_collections.f5networks.f5_bigip.tests.modules.utils import set_module_args
@@ -45,27 +45,26 @@ class TestParameters(unittest.TestCase):
     def test_module_parameters(self):
         args = dict(
             name='fake_policy',
-            type='access_policy',
-            source='/var/fake/fake.tar.gz'
+            state='present',
+            source='/var/fake/fake.xml'
         )
 
         p = ModuleParameters(params=args)
         assert p.name == 'fake_policy'
-        assert p.source == '/var/fake/fake.tar.gz'
-        assert p.type == 'access_policy'
+        assert p.source == '/var/fake/fake.xml'
 
 
 class TestManager(unittest.TestCase):
     def setUp(self):
         self.spec = ArgumentSpec()
-        self.policy = os.path.join(fixture_path, 'fake_policy.tar.gz')
+        self.policy = os.path.join(fixture_path, 'fake_policy.xml')
         self.patcher1 = patch('time.sleep')
         self.patcher1.start()
-        self.p1 = patch('ansible_collections.f5networks.f5_bigip.plugins.modules.bigip_apm_policy_import.module_provisioned')
+        self.p1 = patch('ansible_collections.f5networks.f5_bigip.plugins.modules.bigip_asm_policy_import.module_provisioned')
         self.m1 = self.p1.start()
         self.m1.return_value = True
-        self.p2 = patch('ansible_collections.f5networks.f5_bigip.plugins.modules.bigip_apm_policy_import.tmos_version')
-        self.p3 = patch('ansible_collections.f5networks.f5_bigip.plugins.modules.bigip_apm_policy_import.send_teem')
+        self.p2 = patch('ansible_collections.f5networks.f5_bigip.plugins.modules.bigip_asm_policy_import.tmos_version')
+        self.p3 = patch('ansible_collections.f5networks.f5_bigip.plugins.modules.bigip_asm_policy_import.send_teem')
         self.m2 = self.p2.start()
         self.m2.return_value = '14.1.0'
         self.m3 = self.p3.start()
@@ -80,21 +79,20 @@ class TestManager(unittest.TestCase):
     def test_import_from_file(self, *args):
         set_module_args(dict(
             name='fake_policy',
-            source=self.policy,
-            type='access_policy',
+            source=self.policy
         ))
 
         module = AnsibleModule(
             argument_spec=self.spec.argument_spec,
-            supports_check_mode=self.spec.supports_check_mode
+            supports_check_mode=self.spec.supports_check_mode,
+            mutually_exclusive=self.spec.mutually_exclusive,
         )
 
         # Override methods to force specific logic in the module to happen
         mm = ModuleManager(module=module)
-        mm.version_less_than_14 = Mock(return_value=False)
         mm.exists = Mock(return_value=False)
         mm.import_file_to_device = Mock(return_value=True)
-        mm.remove_temp_file_from_device = Mock(return_value=True)
+        mm.remove_temp_policy_from_device = Mock(return_value=True)
 
         results = mm.exec_module()
 
