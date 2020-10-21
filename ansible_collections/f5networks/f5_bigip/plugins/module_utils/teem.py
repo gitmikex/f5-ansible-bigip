@@ -67,8 +67,8 @@ class TeemClient:
                 validate_certs=TEEM_VERIFY,
                 data=payload
             )
-        except HTTPError as e:
-            raise
+        except HTTPError:
+            return False
         ok = re.search(r'20[01-4]', str(response.code))
 
         if ok:

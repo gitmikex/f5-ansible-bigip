@@ -128,4 +128,4 @@ def send_teem(client, start_time):
         teem = TeemClient(client, start_time)
         teem.send()
     else:
-        return
+        return False

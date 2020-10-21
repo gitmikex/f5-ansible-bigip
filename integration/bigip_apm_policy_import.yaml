@@ -1,0 +1,40 @@
+---
+
+# Test the bigip_apm_policy_import module
+#
+# Running this playbook assumes that you have a BIG-IP installation at the
+# ready to receive the commands issued in this Playbook.
+#
+# This module will run tests against a BIG-IP host to verify that the
+# bigip_apm_policy_import module behaves as expected.
+#
+# Usage:
+#
+#    ansible-playbook -i notahost, integration/bigip_apm_policy_import.yaml
+#
+# Examples:
+#
+#    Run all tests on the bigip_apm_policy_import module
+#
+#    ansible-playbook -i notahost, integration/bigip_apm_policy_import.yaml
+#
+
+- name: Metadata of bigip_apm_policy_import
+  hosts: "f5-test[0]"
+  connection: httpapi
+  any_errors_fatal: true
+
+
+  vars:
+    ansible_user: "{{ lookup('env','F5_USER') }}"
+    ansible_httpapi_password: "{{ lookup('env','F5_PASSWORD') }}"
+    ansible_network_os: "f5networks.f5_bigip.bigip"
+    ansible_httpapi_use_ssl: true
+    ansible_httpapi_use_proxy: false
+    ansible_httpapi_validate_certs: "{{ lookup('env','F5_VALIDATE_CERTS') }}"
+    ansible_httpapi_port: "{{ lookup('env','F5_SERVER_PORT') }}"
+    persistent_log_messages: true
+    f5_telemetry: false
+
+  roles:
+    - bigip_apm_policy_import

@@ -1,8 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
-# Copyright: (c) 2017, F5 Networks Inc.
-# Copyright: (c) 2013, Matt Hite <mhite@hotmail.com>
+# Copyright: (c) 2020, F5 Networks Inc.
 # GNU General Public License v3.0 (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
@@ -12160,7 +12159,7 @@ class LtmPoolsFactManager(BaseManager):
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
 
-        result = parseStats(response)
+        result = parseStats(response['contents'])
         try:
             return result['stats']
         except KeyError:
@@ -12409,7 +12408,7 @@ class NodesFactManager(BaseManager):
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
 
-        result = parseStats(response)
+        result = parseStats(response['contents'])
         try:
             return result['stats']
         except KeyError:
@@ -13930,14 +13929,14 @@ class SystemInfoFactManager(BaseManager):
 
         try:
             pattern = r'^(?P<key>(Product|Build|Sequence|BaseBuild|Edition|Date|Built|Changelist|JobID))\:(?P<value>.*)'
-            result = response['commandResult'].strip()
+            result = response['contents']['commandResult'].strip()
         except KeyError:
             return None
 
         if 'No such file or directory' in result:
             return None
 
-        lines = response['commandResult'].split("\n")
+        lines = response['contents']['commandResult'].split("\n")
         result = dict()
         for line in lines:
             if not line:
@@ -13962,7 +13961,7 @@ class SystemInfoFactManager(BaseManager):
             raise F5ModuleError(response['contents'])
 
         try:
-            parts = response['commandResult'].strip().split(' ')
+            parts = response['contents']['commandResult'].strip().split(' ')
             return dict(
                 uptime=math.floor(float(parts[0]))
             )
@@ -13976,7 +13975,7 @@ class SystemInfoFactManager(BaseManager):
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
 
-        result = parseStats(response)
+        result = parseStats(response['contents'])
         return result
 
     def read_clock_info_from_device(self):
@@ -14029,7 +14028,7 @@ class SystemInfoFactManager(BaseManager):
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
 
-        result = parseStats(response)
+        result = parseStats(response['contents'])
         return result[0]
 
     def read_version_info_from_device(self):
@@ -14101,7 +14100,7 @@ class SystemInfoFactManager(BaseManager):
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
 
-        result = parseStats(response)
+        result = parseStats(response['contents'])
         return result[0]
 
 
@@ -14851,7 +14850,7 @@ class TrafficGroupsFactManager(BaseManager):
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
 
-        result = parseStats(response)
+        result = parseStats(response['contents'])
         try:
             return result['stats']
         except KeyError:
@@ -14962,7 +14961,7 @@ class TrunksFactManager(BaseManager):
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
         
-        result = parseStats(response)
+        result = parseStats(response['contents'])
         try:
             return result['stats']
         except KeyError:
@@ -16043,7 +16042,7 @@ class VirtualServersFactManager(BaseManager):
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
 
-        result = parseStats(response)
+        result = parseStats(response['contents'])
         try:
             return result['stats']
         except KeyError:
@@ -16192,7 +16191,7 @@ class VlansFactManager(BaseManager):
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
 
-        result = parseStats(response)
+        result = parseStats(response['contents'])
         try:
             return result['stats']
         except KeyError:

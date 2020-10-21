@@ -64,6 +64,7 @@ class HttpApi(HttpApiBase):
         super(HttpApi, self).__init__(connection)
         self.connection = connection
         self.access_token = None
+        self.user = None
 
     def login(self, username, password):
         provider = self.get_option("provider")
@@ -74,7 +75,7 @@ class HttpApi(HttpApiBase):
                 'password': password,
                 'loginProviderName': provider if provider else 'tmos'
             }
-
+            self.user = username
             response = self.send_request(LOGIN, method='POST', data=payload, headers=BASE_HEADERS)
         else:
             raise AnsibleConnectionFailure('Username and password are required for login.')
