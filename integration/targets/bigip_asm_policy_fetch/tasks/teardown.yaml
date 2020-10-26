@@ -1,0 +1,10 @@
+---
+
+- name: Clean up files folder
+  shell: find "{{ role_path }}/files/" -mindepth 1 -maxdepth 1 -print0 | xargs -0 rm -rf
+
+- name: Remove blank ASM policy
+  bigip_command:
+    commands:
+      - "tmsh create asm policy {{ policy }}"
+

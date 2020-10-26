@@ -1,0 +1,5 @@
+---
+- name: Create blank ASM policy
+  bigip_command:
+    commands:
+      - "tmsh create asm policy {{ policy }}"
