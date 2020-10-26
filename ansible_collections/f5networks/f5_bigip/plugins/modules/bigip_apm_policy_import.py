@@ -136,7 +136,9 @@ from ansible.module_utils.connection import Connection
 from ..module_utils.common import (
     F5ModuleError, AnsibleF5Parameters, transform_name
 )
-from ..module_utils.client import F5Client, module_provisioned, tmos_version, send_teem
+from ..module_utils.client import (
+    F5Client, module_provisioned, tmos_version, send_teem
+)
 
 
 class Parameters(AnsibleF5Parameters):

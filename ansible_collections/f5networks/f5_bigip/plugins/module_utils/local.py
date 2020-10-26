@@ -351,3 +351,188 @@ class iControlRestSession(object):
             self.delete(uri)
         except ValueError:
             pass
+
+
+def download_asm_file(client, url, dest, file_size):
+    """Download a large ASM file from the remote device
+
+    This method handles issues with ASM file endpoints that allow
+    downloads of ASM objects on the BIG-IP, as well as handles
+    chunking of large files.
+
+    Arguments:
+        client (object): The F5RestClient connection object.
+        url (string): The URL to download.
+        dest (string): The location on (Ansible controller) disk to store the file.
+        file_size (integer): The size of the remote file.
+
+    Returns:
+        bool: No response on success. Fail otherwise.
+    """
+
+    with open(dest, 'wb') as fileobj:
+        chunk_size = 512 * 1024
+        start = 0
+        end = chunk_size - 1
+        size = file_size
+        # current_bytes = 0
+
+        while True:
+            content_range = "%s-%s/%s" % (start, end, size)
+            headers = {
+                'Content-Range': content_range,
+                'Content-Type': 'application/json'
+            }
+            data = {
+                'headers': headers,
+                'verify': False,
+                'stream': False
+            }
+
+            response = client.api.get(url, headers=headers, json=data)
+            if response.status == 200:
+                if 'Content-Length' not in response.headers:
+                    error_message = "The Content-Length header is not present."
+                    raise F5ModuleError(error_message)
+                length = response.headers['Content-Length']
+                if int(length) > 0:
+                    fileobj.write(response.content)
+                else:
+                    error = "Invalid Content-Length value returned: %s ," \
+                            "the value should be greater than 0" % length
+                    raise F5ModuleError(error)
+                # fileobj.write(response.raw_content)
+            if end == size:
+                break
+            start += chunk_size
+            if start >= size:
+                break
+            if (end + chunk_size) > size:
+                end = size - 1
+            else:
+                end = start + chunk_size - 1
+
+
+def download_file(client, url, dest):
+    """Download a file from the remote device
+
+    This method handles the chunking needed to download a file from
+    a given URL on the BIG-IP.
+
+    Arguments:
+        client (object): The F5RestClient connection object.
+        url (string): The URL to download.
+        dest (string): The location on (Ansible controller) disk to store the file.
+
+    Returns:
+        bool: True on success. False otherwise.
+    """
+    with open(dest, 'wb') as fileobj:
+        chunk_size = 512 * 1024
+        start = 0
+        end = chunk_size - 1
+        size = 0
+        current_bytes = 0
+
+        while True:
+            content_range = "%s-%s/%s" % (start, end, size)
+            headers = {
+                'Content-Range': content_range,
+                'Content-Type': 'application/octet-stream'
+            }
+            data = {
+                'headers': headers,
+                'verify': False,
+                'stream': False
+            }
+            response = client.api.get(url, headers=headers, json=data)
+            if response.status == 200:
+                # If the size is zero, then this is the first time through
+                # the loop and we don't want to write data because we
+                # haven't yet figured out the total size of the file.
+                if size > 0:
+                    current_bytes += chunk_size
+                    fileobj.write(response.raw_content)
+            # Once we've downloaded the entire file, we can break out of
+            # the loop
+            if end == size:
+                break
+            crange = response.headers['Content-Range']
+            # Determine the total number of bytes to read.
+            if size == 0:
+                size = int(crange.split('/')[-1]) - 1
+                # If the file is smaller than the chunk_size, the BigIP
+                # will return an HTTP 400. Adjust the chunk_size down to
+                # the total file size...
+                if chunk_size > size:
+                    end = size
+                # ...and pass on the rest of the code.
+                continue
+            start += chunk_size
+            if (current_bytes + chunk_size) > size:
+                end = size
+            else:
+                end = start + chunk_size - 1
+    return True
+
+
+def tmos_version(client):
+    uri = "https://{0}:{1}/mgmt/tm/sys/".format(
+        client.provider['server'],
+        client.provider['server_port'],
+    )
+    resp = client.api.get(uri)
+
+    try:
+        response = resp.json()
+    except ValueError as ex:
+        raise F5ModuleError(str(ex))
+
+    if 'code' in response and response['code'] in [400, 403]:
+        if 'message' in response:
+            raise F5ModuleError(response['message'])
+        else:
+            raise F5ModuleError(resp.content)
+
+    to_parse = urlparse(response['selfLink'])
+    query = to_parse.query
+    version = query.split('=')[1]
+    return version
+
+
+def module_provisioned(client, module_name):
+    provisioned = modules_provisioned(client)
+    if module_name in provisioned:
+        return True
+    return False
+
+
+def modules_provisioned(client):
+    """Returns a list of all provisioned modules
+
+    Args:
+        client: Client connection to the BIG-IP
+
+    Returns:
+        A list of provisioned modules in their short name for.
+        For example, ['afm', 'asm', 'ltm']
+    """
+    uri = "https://{0}:{1}/mgmt/tm/sys/provision".format(
+        client.provider['server'],
+        client.provider['server_port']
+    )
+    resp = client.api.get(uri)
+
+    try:
+        response = resp.json()
+    except ValueError as ex:
+        raise F5ModuleError(str(ex))
+
+    if 'code' in response and response['code'] in [400, 403]:
+        if 'message' in response:
+            raise F5ModuleError(response['message'])
+        else:
+            raise F5ModuleError(resp.content)
+    if 'items' not in response:
+        return []
+    return [x['name'] for x in response['items'] if x['level'] != 'none']
