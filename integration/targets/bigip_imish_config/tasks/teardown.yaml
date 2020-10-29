@@ -1,0 +1,8 @@
+---
+- name: Remove VLANs
+  bigip_command:
+    commands:
+      - tmsh delete net vlan ANYCAST-P2P-1
+      - tmsh delete net vlan ANYCAST-P2P-2
+      - tmsh delete net vlan DMZ
+      - tmsh delete net vlan SYSLOG

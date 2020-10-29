@@ -24,11 +24,12 @@ def connection_response(response, status=200):
 def download_response(file, status=200):
     response_mock = MagicMock()
     bytes_file = bytes(file, encoding='utf8')
+    response_mock_buffer = BytesIO(bytes_file)
     response_mock.status = status
     content_range = '0-{0}/{1}'.format(str(len(bytes_file)), str(len(bytes_file)))
-    response_mock.read.return_value = bytes_file
     response_mock.headers = {
         'Content-Range': content_range,
         'Content-Type': 'application/octet-stream'
     }
-    return response_mock, None
+
+    return response_mock, response_mock_buffer

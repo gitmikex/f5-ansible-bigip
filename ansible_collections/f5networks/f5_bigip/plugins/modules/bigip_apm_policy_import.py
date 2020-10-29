@@ -286,6 +286,7 @@ class ModuleManager(object):
                 transform_name(self.want.partition, self.want.name)
             )
         response = self.client.get(uri)
+
         if response['code'] == 404:
             return False
         if response['code'] in [200, 201, 202]:
@@ -295,8 +296,7 @@ class ModuleManager(object):
             raise F5ModuleError(response['contents'])
 
     def upload_file_to_device(self, content, name):
-        url = "/mgmt/shared/file-transfer/uploads".format(
-        )
+        url = "/mgmt/shared/file-transfer/uploads"
         try:
             self.client.plugin.upload_file(url, content, name)
         except F5ModuleError:

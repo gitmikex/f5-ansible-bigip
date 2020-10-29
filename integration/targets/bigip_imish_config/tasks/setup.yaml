@@ -1,0 +1,8 @@
+---
+- name: Create VLANs
+  bigip_command:
+    commands:
+      - tmsh create net vlan ANYCAST-P2P-1
+      - tmsh create net vlan ANYCAST-P2P-2
+      - tmsh create net vlan DMZ
+      - tmsh create net vlan SYSLOG

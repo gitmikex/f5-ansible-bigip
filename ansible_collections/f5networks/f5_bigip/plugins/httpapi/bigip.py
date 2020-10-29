@@ -42,6 +42,9 @@ options:
 version_added: "1.0"
 """
 import os
+
+from tempfile import NamedTemporaryFile
+
 from ansible.module_utils.basic import to_text
 from ansible.plugins.httpapi import HttpApiBase
 from ansible.module_utils.six.moves.urllib.error import HTTPError
@@ -57,7 +60,7 @@ try:
     import json
 except ImportError:
     import simplejson as json
-
+import q
 
 class HttpApi(HttpApiBase):
     def __init__(self, connection):
@@ -123,7 +126,7 @@ class HttpApi(HttpApiBase):
         except HTTPError as e:
             return dict(code=e.code, contents=json.loads(e.read()))
 
-    def upload_file(self, url, src, dest=None):
+    def upload_file(self, url, src, dest=None, true_path=True):
         """Upload a file to an arbitrary URL.
 
         This method is responsible for correctly chunking an upload request to an
@@ -133,6 +136,7 @@ class HttpApi(HttpApiBase):
             url (string): The URL to upload a file to.
             src (string): The file to be uploaded.
             dest (string): The file name to create on the remote device.
+            true_path(bool) : Indicates if src is path or a string payload.
 
         Returns:
             bool: True on success. False otherwise.
@@ -154,14 +158,30 @@ class HttpApi(HttpApiBase):
         # If you are transmitting over a slow link though, it may be more reliable to
         # transmit many small chunks that fewer large chunks. It will clearly take
         # longer, but it may be more robust.
+        basename = None
         chunk_size = 1024 * 7168
         start = 0
         retries = 0
-        size = os.stat(src).st_size
 
-        if dest is None:
-            basename = os.path.basename(src)
-        else:
+        if true_path:
+            size = os.stat(src).st_size
+            if not dest:
+                basename = os.path.basename(src)
+
+        if not true_path:
+            # This is a workaround to the ansible-connection limitation where only strings, numbers,
+            # lists and dicts can go through JSON-RPC (the way ansible-connection and module talk to eachother),
+            # this means we need to cheat if we want to pass a string payload as a file to BIG-IP, this means
+            # writing the data (strings) to a temporary file so it can be uploaded to via the connection plugin.
+            tmp = NamedTemporaryFile()
+            tmp.write(src.encode())
+            tmp.seek(0)
+            size = os.stat(tmp.name).st_size
+            src = tmp.name
+            if not dest:
+                basename = os.path.basename(tmp.name)
+
+        if not basename:
             basename = dest
         url = '{0}/{1}'.format(url.rstrip('/'), basename)
 
