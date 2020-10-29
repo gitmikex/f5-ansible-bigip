@@ -147,7 +147,7 @@ class ModuleParameters(Parameters):
         timeout = self._values['timeout']
         if timeout < 10 or timeout > 1800:
             raise F5ModuleError(
-                "Timeout value must be between 0 and 1800 seconds."
+                "Timeout value must be between 10 and 1800 seconds."
             )
         if timeout > 99:
             divisor = 100

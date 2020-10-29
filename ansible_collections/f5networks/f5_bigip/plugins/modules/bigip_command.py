@@ -530,9 +530,7 @@ class BaseManager(object):
 
 
 class V1Manager(BaseManager):
-    """Supports CLI (SSH) communication with the remote device
-
-    """
+    """Supports CLI (SSH) communication with the remote device."""
     def _execute(self, commands):
         if self.want.is_tmsh:
             command = dict(
@@ -568,9 +566,7 @@ class V1Manager(BaseManager):
 
 
 class V2Manager(BaseManager):
-    """Supports REST communication with the remote device
-
-    """
+    """Supports REST communication with the remote device."""
     def _execute(self, commands):
         return self.execute_on_device(commands)
 

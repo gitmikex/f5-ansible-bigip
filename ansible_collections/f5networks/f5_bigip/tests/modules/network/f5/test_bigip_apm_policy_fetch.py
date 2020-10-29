@@ -45,12 +45,7 @@ class TestParameters(unittest.TestCase):
         args = dict(
             dest='/tmp/',
             force='yes',
-            file='foo_export',
-            provider=dict(
-                server='localhost',
-                password='password',
-                user='admin'
-            )
+            file='foo_export'
         )
         p = ModuleParameters(params=args)
         assert p.file == 'foo_export'
@@ -62,20 +57,19 @@ class TestManager(unittest.TestCase):
         self.p1 = patch('ansible_collections.f5networks.f5_bigip.plugins.modules.bigip_apm_policy_fetch.module_provisioned')
         self.m1 = self.p1.start()
         self.m1.return_value = True
+        self.p2 = patch('ansible_collections.f5networks.f5_bigip.plugins.modules.bigip_apm_policy_fetch.send_teem')
+        self.m2 = self.p2.start()
+        self.m2.return_value = True
 
     def tearDown(self):
         self.p1.stop()
+        self.p2.stop()
 
     def test_create(self, *args):
         set_module_args(dict(
             name='fake_policy',
             file='foo_export',
-            dest='/tmp/',
-            provider=dict(
-                server='localhost',
-                password='password',
-                user='admin'
-            )
+            dest='/tmp/'
         ))
 
         module = AnsibleModule(

@@ -231,14 +231,14 @@ class HttpApi(HttpApiBase):
                         'Content-Type': 'application/octet-stream',
                         'Connection': 'keep-alive'
                     }
-                    response, _ = self.connection.send(url, None, headers=headers)
+                    response, response_buffer = self.connection.send(url, None, headers=headers)
                     if response.status == 200:
                         # If the size is zero, then this is the first time through
                         # the loop and we don't want to write data because we
                         # haven't yet figured out the total size of the file.
                         if size > 0:
                             current_bytes += chunk_size
-                            fileobj.write(response.read())
+                            fileobj.write(response_buffer.getbuffer())
                     # Once we've downloaded the entire file, we can break out of
                     # the loop
                     if end == size:

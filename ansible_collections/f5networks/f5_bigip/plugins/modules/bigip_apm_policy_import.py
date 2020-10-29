@@ -327,7 +327,7 @@ class ModuleManager(object):
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
 
-        if 'commandResult' in response:
+        if 'commandResult' in response['contents']:
             raise F5ModuleError(response['commandResult'])
 
         return True

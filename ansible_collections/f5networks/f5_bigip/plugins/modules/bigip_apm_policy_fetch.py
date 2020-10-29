@@ -50,44 +50,41 @@ notes:
   - Due to ID685681 it is not possible to execute ng_* tools via REST API on v12.x and 13.x, once this is fixed
     this restriction will be removed.
   - Requires BIG-IP >= 14.0.0
-extends_documentation_fragment: f5networks.f5_modules.f5
 author:
   - Wojciech Wypior (@wojtek0806)
 '''
 
 EXAMPLES = r'''
-- name: Export APM access profile
-  bigip_apm_policy_fetch:
-    name: foobar
-    file: export_foo
-    dest: /root/download
-    provider:
-      password: secret
-      server: lb.mydomain.com
-      user: admin
-  delegate_to: localhost
+- hosts: all
+  collections:
+    - f5networks.f5_bigip
+  connection: httpapi
 
-- name: Export APM access policy
-  bigip_apm_policy_fetch:
-    name: foobar
-    file: export_foo
-    dest: /root/download
-    type: access_policy
-    provider:
-      password: secret
-      server: lb.mydomain.com
-      user: admin
-  delegate_to: localhost
+  vars:
+    ansible_host: "lb.mydomain.com"
+    ansible_user: "admin"
+    ansible_httpapi_password: "secret"
+    ansible_network_os: f5networks.f5_bigip.bigip
+    ansible_httpapi_use_ssl: yes
 
-- name: Export APM access profile, autogenerate name
-  bigip_apm_policy_fetch:
-    name: foobar
-    dest: /root/download
-    provider:
-      password: secret
-      server: lb.mydomain.com
-      user: admin
-  delegate_to: localhost
+  tasks:  
+    - name: Export APM access profile
+      bigip_apm_policy_fetch:
+        name: foobar
+        file: export_foo
+        dest: /root/download
+
+    - name: Export APM access policy
+      bigip_apm_policy_fetch:
+        name: foobar
+        file: export_foo
+        dest: /root/download
+        type: access_policy
+    
+    - name: Export APM access profile, autogenerate name
+      bigip_apm_policy_fetch:
+        name: foobar
+        dest: /root/download
 '''
 
 RETURN = r'''
@@ -117,18 +114,19 @@ type:
 
 import os
 import tempfile
+from datetime import datetime
+from distutils.version import LooseVersion
 
 from ansible.module_utils.basic import (
     AnsibleModule, env_fallback
 )
-from distutils.version import LooseVersion
+from ansible.module_utils.connection import Connection
 
-from ..module_utils.bigip_local import F5RestClient
 from ..module_utils.common import (
     F5ModuleError, AnsibleF5Parameters, transform_name
 )
-from ..module_utils.local import (
-    module_provisioned, tmos_version, download_file, f5_argument_spec
+from ..module_utils.client import (
+    F5Client, module_provisioned, tmos_version, send_teem
 )
 
 
@@ -215,7 +213,8 @@ class ReportableChanges(Changes):
 class ModuleManager(object):
     def __init__(self, *args, **kwargs):
         self.module = kwargs.get('module', None)
-        self.client = F5RestClient(**self.module.params)
+        self.connection = kwargs.get('connection', None)
+        self.client = F5Client(module=self.module, client=self.connection)
         self.want = ModuleParameters(params=self.module.params)
         self.changes = UsableChanges()
 
@@ -236,6 +235,7 @@ class ModuleManager(object):
             )
 
     def exec_module(self):
+        start = datetime.now().isoformat()
         if not module_provisioned(self.client, 'apm'):
             raise F5ModuleError(
                 "APM must be provisioned to use this module."
@@ -252,6 +252,7 @@ class ModuleManager(object):
         changes = reportable.to_return()
         result.update(**changes)
         result.update(dict(changed=True))
+        send_teem(self.client, start)
         return result
 
     def version_less_than_14(self):
@@ -271,8 +272,7 @@ class ModuleManager(object):
             raise F5ModuleError(
                 "File '{0}' already exists.".format(self.want.fulldest)
             )
-        self.create_on_device()
-        self.execute()
+        self.create()
 
     def create(self):
         self._set_changed_options()
@@ -303,61 +303,41 @@ class ModuleManager(object):
 
     def policy_exists(self):
         if self.want.type == 'access_policy':
-            uri = 'https://{0}:{1}/mgmt/tm/apm/policy/access-policy/{2}'.format(
-                self.client.provider['server'],
-                self.client.provider['server_port'],
-                transform_name(self.want.partition, self.want.name)
-            )
+            uri = "/mgmt/tm/apm/policy/access-policy/{0}".format(transform_name(self.want.partition, self.want.name))
         else:
-            uri = 'https://{0}:{1}/mgmt/tm/apm/profile/access/{2}'.format(
-                self.client.provider['server'],
-                self.client.provider['server_port'],
-                transform_name(self.want.partition, self.want.name)
-            )
-        resp = self.client.api.get(uri)
+            uri = "/mgmt/tm/apm/profile/access/{0}".format(transform_name(self.want.partition, self.want.name))
 
-        try:
-            response = resp.json()
-        except ValueError as ex:
-            raise F5ModuleError(str(ex))
+        response = self.client.get(uri)
 
-        if resp.status not in [200, 201] or 'code' in response and response['code'] not in [200, 201]:
-            raise F5ModuleError(resp.content)
-
-        if 'items' in response and response['items'] != []:
-            return True
-
-        raise F5ModuleError('The provided {0} with the name {1} does not exist on device.'.format(
+        if response['code'] == 404:
+            raise F5ModuleError('The provided {0} with the name {1} does not exist on device.'.format(
                 self.want.type, self.want.name)
             )
+        if response['code'] not in [200, 201, 202]:
+            raise F5ModuleError(response['contents'])
+        return True
 
     def create_on_device(self):
         cmd = 'ng_export -t {0} {1} {1} -p {2}'.format(
             self.want.type, self.want.name, self.want.partition
         )
-        uri = "https://{0}:{1}/mgmt/tm/util/bash/".format(
-            self.client.provider['server'],
-            self.client.provider['server_port'],
-        )
+        uri = "/mgmt/tm/util/bash/"
         args = dict(
             command='run',
             utilCmdArgs='-c "{0}"'.format(cmd)
         )
-        resp = self.client.api.post(uri, json=args)
+        response = self.client.post(uri, data=args)
 
-        try:
-            response = resp.json()
-        except ValueError as ex:
-            raise F5ModuleError(str(ex))
+        if response['code'] not in [200, 201, 202]:
+            raise F5ModuleError(response['contents'])
 
-        if 'commandResult' in response:
-            raise F5ModuleError('Item export command failed.')
-
-        if resp.status not in [200, 201] or 'code' in response and response['code'] not in [200, 201]:
-            raise F5ModuleError(resp.content)
+        if 'commandResult' in response['contents']:
+            raise F5ModuleError('Item export command failed with the error: {0}'.format(
+                response['contents']['commandResult']
+            )
+            )
 
         self._move_file_to_download()
-
         return True
 
     def _move_file_to_download(self):
@@ -377,60 +357,34 @@ class ModuleManager(object):
             utilCmdArgs=move_path
         )
 
-        uri = "https://{0}:{1}/mgmt/tm/util/unix-mv/".format(
-            self.client.provider['server'],
-            self.client.provider['server_port']
-        )
+        uri = "/mgmt/tm/util/unix-mv/"
+        response = self.client.post(uri, data=params)
 
-        resp = self.client.api.post(uri, json=params)
+        if response['code'] not in [200, 201, 202]:
+            raise F5ModuleError(response['contents'])
 
-        try:
-            response = resp.json()
-            if 'commandResult' in response:
-                if 'cannot stat' in response['commandResult']:
-                    raise F5ModuleError(response['commandResult'])
-        except ValueError as ex:
-            raise F5ModuleError(str(ex))
-
-        if resp.status in [200, 201] or 'code' in response and response['code'] in [200, 201]:
-            return True
-        raise F5ModuleError(resp.content)
+        if 'commandResult' in response['contents']:
+            if 'cannot stat' in response['contents']['commandResult']:
+                raise F5ModuleError(response['contents']['commandResult'])
+        return True
 
     def download_from_device(self, dest):
-        url = 'https://{0}:{1}/mgmt/cm/autodeploy/software-image-downloads/{2}'.format(
-            self.client.provider['server'],
-            self.client.provider['server_port'],
-            self.want.file
-        )
-        try:
-            download_file(self.client, url, dest)
-        except F5ModuleError:
-            raise F5ModuleError(
-                "Failed to download the file."
-            )
+        url = "/mgmt/cm/autodeploy/software-image-downloads/{0}".format(self.want.file)
+        self.client.plugin.download_file(url, dest)
         if os.path.exists(self.want.dest):
             return True
         return False
 
     def remove_temp_file_from_device(self):
         tpath_name = '/shared/images/{0}'.format(self.want.file)
-        uri = "https://{0}:{1}/mgmt/tm/util/unix-rm/".format(
-            self.client.provider['server'],
-            self.client.provider['server_port'],
-        )
+        uri = "/mgmt/tm/util/unix-rm/"
         args = dict(
             command='run',
             utilCmdArgs=tpath_name
         )
-        resp = self.client.api.post(uri, json=args)
-        try:
-            response = resp.json()
-        except ValueError as ex:
-            raise F5ModuleError(str(ex))
-
-        if resp.status in [200, 201] or 'code' in response and response['code'] in [200, 201]:
-            return True
-        raise F5ModuleError(resp.content)
+        response = self.client.post(uri, data=args)
+        if response['code'] not in [200, 201, 202]:
+            raise F5ModuleError(response['contents'])
 
 
 class ArgumentSpec(object):
@@ -458,7 +412,6 @@ class ArgumentSpec(object):
             )
         )
         self.argument_spec = {}
-        self.argument_spec.update(f5_argument_spec)
         self.argument_spec.update(argument_spec)
 
 
@@ -471,7 +424,7 @@ def main():
     )
 
     try:
-        mm = ModuleManager(module=module)
+        mm = ModuleManager(module=module, connection=Connection(module._socket_path))
         results = mm.exec_module()
         module.exit_json(**results)
     except F5ModuleError as ex:
