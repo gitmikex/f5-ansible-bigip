@@ -1,0 +1,24 @@
+---
+- name: Simple declaration
+  bigiq_do_deploy:
+    content: "{{ lookup('file', 'do_bigiq_declaration.json') }}"
+  register: result
+
+- name: Assert Simple declaration
+  assert:
+    that:
+      - result is changed
+      - result is success
+
+# module is not idempotent due to DO bug, these tests are just placeholders for when DO is fixed.
+- name: Simple declaration - Idempotent check
+  bigiq_do_deploy:
+    content: "{{ lookup('file', 'do_bigiq_declaration.json') }}"
+  register: result
+
+# module is not idempotent due to DO bug, these tests are just placeholders for when DO is fixed.
+- name: Assert Simple declaration - Idempotent check
+  assert:
+    that:
+      - result is changed
+      - result is success

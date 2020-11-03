@@ -11,7 +11,7 @@ import os
 
 from ansible.module_utils.basic import AnsibleModule
 
-from ansible_collections.f5networks.f5_bigip.plugins.modules.bigip_do_deploy import (
+from ansible_collections.f5networks.f5_bigip.plugins.modules.bigiq_do_deploy import (
     Parameters, ArgumentSpec, ModuleManager
 )
 from ansible_collections.f5networks.f5_bigip.tests.compat import unittest

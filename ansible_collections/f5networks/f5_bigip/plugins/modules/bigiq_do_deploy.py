@@ -11,9 +11,9 @@ __metaclass__ = type
 DOCUMENTATION = r'''
 ---
 module: bigip_do_deploy
-short_description: Manages DO declarations sent to BIG-IP
+short_description: Manages DO declarations sent to BIG-IQ
 description:
-  - Manages DO declarations sent to BIG-IP.
+  - Manages DO declarations sent to BIG-IQ.
 version_added: "1.0.0"
 options:
   content:
@@ -80,7 +80,7 @@ import time
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.six import string_types
 
-from ..module_utils.bigip_local import F5RestClient
+from ..module_utils.bigiq_local import F5RestClient
 from ..module_utils.local import f5_argument_spec
 from ..module_utils.common import (
     F5ModuleError, AnsibleF5Parameters,
@@ -234,56 +234,23 @@ class ModuleManager(object):
         except ValueError as ex:
             raise F5ModuleError(str(ex))
 
-        if resp.status == 422:
+        if resp.status in [422, 424]:
             errors = self._get_errors_from_response(response)
             if errors:
                 message = "{0}".format('. '.join(errors))
                 raise F5ModuleError(message)
 
+        if resp.status not in [200, 201, 202] or 'code' in response and response['code'] not in [200, 201, 202]:
+            raise F5ModuleError(resp.content)
         return resp.status, response
 
     def wait_for_task(self, task, delay, period):
         for x in range(0, period):
             code, response = self._check_task_on_device(task)
-            if code not in [200, 201, 202]:
-                ready = self.wait_for_device_reboot()
-                if ready:
-                    code, response = self._check_task_on_device(task)
             if code in [200, 201, 202]:
                 if response['result']['status'] != 'RUNNING':
                     return response
             time.sleep(delay)
-
-    def _check_if_device_is_ready(self):
-        uri = "https://{0}:{1}/mgmt/shared/declarative-onboarding/available".format(
-            self.client.provider['server'],
-            self.client.provider['server_port'],
-        )
-        resp = self.client.api.get(uri)
-        try:
-            response = resp.json()
-        except ValueError as ex:
-            raise F5ModuleError(str(ex))
-
-        if resp.status not in [200, 201, 202] or 'code' in response and response['code'] not in [200, 201, 202]:
-            raise F5ModuleError(resp.content)
-
-        return True
-
-    def wait_for_device_reboot(self):
-        for x in range(0, 360):
-            time.sleep(5)
-            try:
-                self.client.reconnect()
-                ready = self._check_if_device_is_ready()
-                if ready is True:
-                    return ready
-            except F5ModuleError:
-                # Handle all exceptions because if the system is offline (for a
-                # reboot) the REST client will raise exceptions about
-                # connections
-                pass
-        raise F5ModuleError('Reboot wait timeout limit exceeded 1800 seconds.')
 
 
 class ArgumentSpec(object):
@@ -293,7 +260,7 @@ class ArgumentSpec(object):
             content=dict(type='raw'),
             timeout=dict(
                 type='int',
-                default=150
+                default=300
             ),
         )
         self.argument_spec = {}

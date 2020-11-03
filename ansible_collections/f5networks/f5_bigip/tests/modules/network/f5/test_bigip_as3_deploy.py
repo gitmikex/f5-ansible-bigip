@@ -46,10 +46,11 @@ class TestParameters(unittest.TestCase):
         args = dict(
             content=dict(param1='foo', param2='bar'),
             tenant='test_tenant',
-            state='present',
+            timeout=600,
         )
         p = Parameters(params=args)
         assert p.content == dict(param1='foo', param2='bar')
+        assert p.timeout == 600
 
 
 class TestManager(unittest.TestCase):
@@ -68,6 +69,7 @@ class TestManager(unittest.TestCase):
             content=declaration,
             tenant='Sample_01',
             state='present',
+            timeout=600
         ))
 
         module = AnsibleModule(
@@ -84,6 +86,7 @@ class TestManager(unittest.TestCase):
         results = mm.exec_module()
 
         assert results['changed'] is True
+        assert mm.want.timeout == (6, 100)
 
     def test_remove_tenant_declaration(self, *args):
         set_module_args(dict(
@@ -105,3 +108,4 @@ class TestManager(unittest.TestCase):
         results = mm.exec_module()
 
         assert results['changed'] is True
+        assert mm.want.timeout == (3, 100)

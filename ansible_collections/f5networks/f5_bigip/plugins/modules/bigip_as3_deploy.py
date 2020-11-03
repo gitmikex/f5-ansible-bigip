@@ -153,7 +153,7 @@ class ModuleParameters(Parameters):
             divisor = 100
         delay = timeout/divisor
 
-        return int(delay), divisor
+        return delay, divisor
 
 
 class Changes(Parameters):
@@ -287,7 +287,7 @@ class ModuleManager(object):
         return response['contents']
 
     def upsert_on_device(self):
-        interval, period = self.want.timeout
+        delay, period = self.want.timeout
         if self.want.tenant:
             uri = "/mgmt/shared/appsvcs/declare/{0}?async=true".format(self.want.tenant)
         else:
@@ -298,11 +298,11 @@ class ModuleManager(object):
         if response['code'] not in [200, 201, 202, 204, 207]:
             raise F5ModuleError(response['contents'])
 
-        task = self.wait_for_task("/mgmt/shared/appsvcs/task/{0}".format(response['contents']['id']), period, interval)
+        task = self.wait_for_task("/mgmt/shared/appsvcs/task/{0}".format(response['contents']['id']), delay, period)
         if task:
             return any(msg.get('message', None) != 'no change' for msg in task['results'])
 
-    def wait_for_task(self, path, period, interval):
+    def wait_for_task(self, path, delay, period):
         for x in range(0, period):
             task = self._check_task_on_device(path)
             errors = self._get_errors_from_response(task)
@@ -311,7 +311,7 @@ class ModuleManager(object):
                 raise F5ModuleError(message)
             if any([msg.get('message', None) != 'in progress' for msg in task['results']]):
                 return task
-            time.sleep(interval)
+            time.sleep(delay)
         raise F5ModuleError('Operation timed out.')
 
     def resource_exists(self):
