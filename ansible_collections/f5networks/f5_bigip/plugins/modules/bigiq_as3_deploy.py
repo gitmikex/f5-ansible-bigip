@@ -10,10 +10,10 @@ __metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
-module: bigip_as3_deploy
-short_description: Manages AS3 declarations sent to BIG-IP
+module: bigiq_as3_deploy
+short_description: Manages AS3 declarations sent to BIG-IQ
 description:
-  - Manages AS3 declarations sent to BIG-IP.
+  - Manages AS3 declarations sent to BIG-IQ.
 version_added: "1.0.0"
 options:
   content:
@@ -32,26 +32,14 @@ options:
         the purpose of that filter is to format the JSON to be human-readable and this process
         includes inserting "extra characters that break JSON validators.
     type: raw
-  tenant:
-    description:
-      - An AS3 tenant you wish to manage.
-      - A value of C(all) or no value when C(state) is C(absent) will remove all as3 declarations from device.
-    type: str
   timeout:
     description:
       - The amount of time in seconds to wait for the AS3 async interface to complete its task.
       - The accepted value range is between C(10) and C(1800) seconds.
       type: int
       default: 300
-  state:
-    description:
-      - When C(state) is C(present), ensures the declaration is exists.
-      - When C(state) is C(absent), ensures that the declaration is removed.
-    type: str
-    choices:
-      - present
-      - absent
-    default: present
+notes:
+  - Due to limitations of the AS3 package on BIG-IQ, the module is not idempotent.
 author:
   - Wojciech Wypior (@wojtek0806)
 '''
@@ -66,7 +54,7 @@ EXAMPLES = r'''
     ansible_host: "lb.mydomain.com"
     ansible_user: "admin"
     ansible_httpapi_password: "secret"
-    ansible_network_os: f5networks.f5_bigip.bigip
+    ansible_network_os: f5networks.f5_bigip.bigiq
     ansible_httpapi_use_ssl: yes
 
   tasks:   
@@ -74,12 +62,6 @@ EXAMPLES = r'''
       atc_deploy:
         content: "{{ lookup('file', 'two_tenants.json') }}"
         service_type: "as3"
-
-    - name: Remove one tenant - AS3
-      atc_deploy:
-        service_type: "as3"
-        as3_tenant: "Sample_01"
-        state: absent
 '''
 
 RETURN = r'''
@@ -117,7 +99,6 @@ class Parameters(AnsibleF5Parameters):
 
     returnables = [
         'content',
-        'tenant',
     ]
 
 
@@ -134,12 +115,6 @@ class ModuleParameters(Parameters):
             return json.loads(self._values['content'] or 'null')
         else:
             return self._values['content']
-
-    @property
-    def tenant(self):
-        if self._values['tenant'] in [None, 'all']:
-            return None
-        return self._values['tenant']
 
     @property
     def timeout(self):
@@ -201,15 +176,9 @@ class ModuleManager(object):
             )
 
     def exec_module(self):
-        changed = False
         result = dict()
-        state = self.want.state
 
-        if state == "present":
-            changed = self.present()
-        elif state == "absent":
-            changed = self.absent()
-
+        changed = self.upsert()
         result.update(dict(changed=changed))
         return result
 
@@ -219,51 +188,6 @@ class ModuleManager(object):
             return True
         result = self.upsert_on_device()
         return result
-
-    def present(self):
-        if self.exists():
-            return False
-        return self.upsert()
-
-    def absent(self):
-        if self.resource_exists():
-            return self.remove()
-        return False
-
-    def remove(self):
-        if self.module.check_mode:
-            return True
-        result = self.remove_from_device()
-        if self.resource_exists():
-            raise F5ModuleError("Failed to delete the resource.")
-        return result
-
-    def exists(self):
-        declaration = {}
-        if self.want.content is None:
-            raise F5ModuleError(
-                "Empty content cannot be specified when 'state' is 'present'."
-            )
-        try:
-            declaration.update(self.want.content)
-        except ValueError:
-            raise F5ModuleError(
-                "The provided 'content' could not be converted into valid json. If you "
-                "are using the 'to_nice_json' filter, please remove it."
-            )
-        declaration['action'] = 'dry-run'
-
-        if self.want.tenant:
-            uri = "/mgmt/shared/appsvcs/declare/{0}".format(self.want.tenant)
-        else:
-            uri = "/mgmt/shared/appsvcs/declare"
-
-        response = self.client.post(uri, data=declaration)
-
-        if response['code'] not in [200, 201, 202, 204, 207]:
-            raise F5ModuleError(response['contents'])
-
-        return all([msg.get('message', None) == 'no change' for msg in response['contents']['results']])
 
     def _get_errors_from_response(self, messages):
         results = []
@@ -294,13 +218,13 @@ class ModuleManager(object):
             uri = "/mgmt/shared/appsvcs/declare?async=true"
 
         response = self.client.post(uri, data=self.want.content)
-
         if response['code'] not in [200, 201, 202, 204, 207]:
             raise F5ModuleError(response['contents'])
 
         task = self.wait_for_task("/mgmt/shared/appsvcs/task/{0}".format(response['contents']['id']), delay, period)
         if task:
             return any(msg.get('message', None) != 'no change' for msg in task['results'])
+        return False
 
     def wait_for_task(self, path, delay, period):
         for x in range(0, period):
@@ -317,60 +241,19 @@ class ModuleManager(object):
             "please increase the timeout parameter for long lived actions."
         )
 
-    def resource_exists(self):
-        if self.want.tenant:
-            uri = "/mgmt/shared/appsvcs/declare/{0}".format(self.want.tenant)
-        else:
-            uri = "/mgmt/shared/appsvcs/declare"
-
-        response = self.client.get(uri)
-
-        if response['code'] == 404:
-            return False
-        if response['code'] == 204:
-            return False
-        return True
-
-    def remove_from_device(self):
-        interval, period = self.want.timeout
-        if self.want.tenant:
-            uri = "/mgmt/shared/appsvcs/declare/{0}?async=true".format(self.want.tenant)
-        else:
-            uri = "/mgmt/shared/appsvcs/declare?async=true"
-
-        response = self.client.delete(uri)
-
-        if response['code'] not in [200, 201, 202, 204, 207]:
-            raise F5ModuleError(response['contents'])
-
-        task = self.wait_for_task("/mgmt/shared/appsvcs/task/{0}".format(response['contents']['id']), period, interval)
-        if task:
-            return any(msg.get('message', None) != 'no change' for msg in task['results'])
-
 
 class ArgumentSpec(object):
     def __init__(self):
         self.supports_check_mode = True
         argument_spec = dict(
             content=dict(type='raw'),
-            tenant=dict(),
             timeout=dict(
                 type='int',
                 default=300
             ),
-            state=dict(
-                default='present',
-                choices=['present', 'absent']
-            ),
         )
         self.argument_spec = {}
         self.argument_spec.update(argument_spec)
-        self.required_if = [
-            ['state', 'present', ['content']]
-        ]
-        self.required_if = [
-            ['state', 'absent', ['tenant']]
-        ]
 
 
 def main():
@@ -379,7 +262,6 @@ def main():
     module = AnsibleModule(
         argument_spec=spec.argument_spec,
         supports_check_mode=spec.supports_check_mode,
-        required_if=spec.required_if
     )
 
     try:

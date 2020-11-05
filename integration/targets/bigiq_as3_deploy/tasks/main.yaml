@@ -1,0 +1,23 @@
+---
+
+- name: Declaration with 2 Tenants
+  bigiq_as3_deploy:
+    content: "{{ lookup('file', 'two_tenants.json') }}"
+  register: result
+
+- name: Assert Declaration with 2 Tenants
+  assert:
+    that:
+      - result is changed
+      - result is success
+
+- name: Declaration change with 2 Tenants
+  bigiq_as3_deploy:
+    content: "{{ lookup('file', 'two_tenants_changed.json') }}"
+  register: result
+
+- name: Assert Declaration change with 2 Tenants
+  assert:
+    that:
+      - result is changed
+      - result is success

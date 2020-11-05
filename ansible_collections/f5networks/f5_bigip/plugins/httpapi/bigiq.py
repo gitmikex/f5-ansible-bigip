@@ -21,6 +21,7 @@ options:
     - The login provider used in communicating with BIG-IQ devices when the API connection
       is first established.
     - If the provider is not specified, the default C(local) value is assumed.
+    default: local
     ini:
     - section: defaults
       key: f5_provider
@@ -41,7 +42,6 @@ options:
       - name: f5_telemetry
 version_added: "1.0"
 """
-
 import os
 import re
 from ansible.module_utils.basic import to_text

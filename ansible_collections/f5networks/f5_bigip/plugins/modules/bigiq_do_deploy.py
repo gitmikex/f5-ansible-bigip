@@ -10,7 +10,7 @@ __metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
-module: bigip_do_deploy
+module: bigiq_do_deploy
 short_description: Manages DO declarations sent to BIG-IQ
 description:
   - Manages DO declarations sent to BIG-IQ.
@@ -251,6 +251,10 @@ class ModuleManager(object):
                 if response['result']['status'] != 'RUNNING':
                     return response
             time.sleep(delay)
+        raise F5ModuleError(
+            "Module timeout reached, state change is unknown, "
+            "please increase the timeout parameter for long lived actions."
+        )
 
 
 class ArgumentSpec(object):
