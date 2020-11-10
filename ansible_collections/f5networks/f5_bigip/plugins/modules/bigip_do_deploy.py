@@ -253,6 +253,10 @@ class ModuleManager(object):
                 if response['result']['status'] != 'RUNNING':
                     return response
             time.sleep(delay)
+        raise F5ModuleError(
+            "Module timeout reached, state change is unknown, "
+            "please increase the timeout parameter for long lived actions."
+        )
 
     def _check_if_device_is_ready(self):
         uri = "https://{0}:{1}/mgmt/shared/declarative-onboarding/available".format(
