@@ -9,4 +9,4 @@
 # cleanup.py can be used to cleanup email received from license server an populate bigiq-regkey-licenses.txt.
 - name: Get a license
   set_fact:
-    license_key: "{{ lookup('license_hopper', filename='bigiq-regkey-licenses.txt', remove=True) }}"
+    license_key: "{{ lookup('f5networks.f5_bigip.license_hopper', filename='bigiq-regkey-licenses.txt', remove=True) }}"

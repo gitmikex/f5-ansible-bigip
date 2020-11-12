@@ -1,0 +1,5 @@
+---
+
+- name: Get a license
+  set_fact:
+    license_key: "{{ lookup('f5networks.f5_bigip.license_hopper', filename='bigiq-utility-licenses.txt', remove=True) }}"
