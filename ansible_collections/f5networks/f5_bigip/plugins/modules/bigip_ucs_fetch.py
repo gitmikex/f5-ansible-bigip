@@ -56,6 +56,13 @@ options:
     description:
       - The name of the UCS file to create on the remote server for downloading
     type: str
+  async_timeout:
+    description:
+      - Parameter used when creating new UCS file on device.
+      - The amount of time in seconds to wait for the API async interface to complete its task.
+      - The accepted value range is between C(150) and C(1800) seconds.
+    type: int
+    default: 150
 notes:
   - BIG-IP provides no way to get a checksum of the UCS files on the system
     via any interface except, perhaps, logging in directly to the box (which
@@ -152,6 +159,7 @@ size:
 
 import os
 import tempfile
+import time
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.connection import Connection
@@ -327,6 +335,11 @@ class ModuleManager(object):
         return True
 
     def create_on_device(self):
+        task = self.create_async_task_on_device()
+        self._start_task_on_device(task)
+        self.async_wait(task)
+
+    def create_async_task_on_device(self):
         if self.want.passphrase:
             params = dict(
                 command='save',
@@ -339,11 +352,44 @@ class ModuleManager(object):
                 name=self.want.src,
             )
 
-        uri = "/mgmt/tm/sys/ucs"
+        uri = "/mgmt/tm/task/sys/ucs"
+
         response = self.client.post(uri, data=params)
 
-        if response['code'] not in [200, 201, 202]:
-            raise F5ModuleError(response['contents'])
+        if response['code'] in [200, 201, 202]:
+            return response['contents']['_taskId']
+
+        raise F5ModuleError(response['contents'])
+
+    def _start_task_on_device(self, task):
+        payload = {"_taskState": "VALIDATING"}
+        uri = "/mgmt/tm/task/sys/ucs/{0}".format(task)
+        resp = self.client.put(uri, data=payload)
+        try:
+            response = resp.json()
+        except ValueError as ex:
+            raise F5ModuleError(str(ex))
+
+        if response['code'] in [200, 201, 202]:
+            return True
+
+        raise F5ModuleError(response['contents'])
+
+    def async_wait(self, task):
+        delay, period = self.want.async_timeout
+        uri = "/mgmt/tm/task/sys/ucs/{0}/result".format(task)
+        for x in range(0, period):
+            response = self.client.get(uri)
+            if response['code'] in [200, 201, 202]:
+                if response['_taskState'] == 'FAILED':
+                    raise F5ModuleError("Task failed unexpectedly.")
+                if response['_taskState'] == 'COMPLETED':
+                    return True
+            time.sleep(delay)
+        raise F5ModuleError(
+            "Module timeout reached, state change is unknown, "
+            "please increase the async_timeout parameter for long lived actions."
+        )
 
     def download(self):
         self.download_from_device(self.want.dest)
@@ -408,7 +454,11 @@ class ArgumentSpec(object):
                 default='no',
                 type='bool'
             ),
-            src=dict()
+            src=dict(),
+            async_timeout=dict(
+                type='int',
+                default=150
+            )
         )
         self.argument_spec = {}
         self.argument_spec.update(argument_spec)
