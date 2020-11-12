@@ -587,7 +587,6 @@ class ModuleManager(object):
         }
         uri = "/mgmt/tm/util/bash"
         response = self.client.post(uri, data=params)
-        q.q(response)
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
 

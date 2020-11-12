@@ -1,42 +1,49 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2017 F5 Networks Inc.
+# Copyright: (c) 2017, F5 Networks Inc.
 # GNU General Public License v3.0 (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
-
 DOCUMENTATION = r'''
 ---
-module: bigiq_regkey_pool
-short_description: Manages registration key pools on BIG-IQ
+module: bigiq_regkey_license
+short_description: Manages licenses in a BIG-IQ registration key pool
 description:
-  - Manages registration key (regkey) pools on a BIG-IQ. These pools function as
-    a container in-which you will add lists of registration keys. To add registration
-    keys, use the C(bigiq_regkey_license) module.
+  - Manages licenses in a BIG-IQ registration key pool.
 version_added: "1.0.0"
 options:
-  name:
+  regkey_pool:
     description:
-      - Specifies the name of the registration key pool.
-      - You must be mindful to name your registration pools unique names. While
-        BIG-IQ does not require this, this module does. If you do not do this,
+      - The registration key pool in which you want to place the license.
+      - You must give your registration pools unique names. While
+        BIG-IQ does not require this, this module does. If you do not,
         the behavior of the module is undefined and you may end up putting
         licenses in the wrong registration key pool.
     type: str
     required: True
+  license_key:
+    description:
+      - The license key to put in the pool.
+    type: str
+    required: True
   description:
     description:
-      - A description to attach to the pool.
+      - Description of the license.
     type: str
+  accept_eula:
+    description:
+      - A key that signifies you accept the F5 EULA for this license.
+      - A copy of the EULA can be found here https://askf5.f5.com/csp/article/K12902
+      - This is required when C(state) is C(present).
+    type: bool
   state:
     description:
-      - The state of the regkey pool on the system.
-      - When C(present), guarantees that the pool exists.
-      - When C(absent), removes the pool, and the licenses it contains, from the
-        system.
+      - The state of the regkey license in the pool on the system.
+      - When C(present), guarantees the license exists in the pool.
+      - When C(absent), removes the license from the pool.
     type: str
     choices:
       - absent
@@ -60,21 +67,30 @@ EXAMPLES = r'''
     ansible_httpapi_password: "secret"
     ansible_network_os: f5networks.f5_bigip.bigiq
     ansible_httpapi_use_ssl: yes
-
-  tasks:   
-    - name: Create a registration key (regkey) pool to hold individual device licenses
-      bigiq_regkey_pool:
-        name: foo-pool
-        state: present
+  
+  tasks:
+    - name: Add a registration key license to a pool
+      bigiq_regkey_license:
+        regkey_pool: foo-pool
+        license_key: XXXXX-XXXXX-XXXXX-XXXXX-XXXXX
+        accept_eula: yes
+    
+    - name: Remove a registration key license from a pool
+      bigiq_regkey_license:
+        regkey_pool: foo-pool
+        license_key: XXXXX-XXXXX-XXXXX-XXXXX-XXXXX
+        state: absent
 '''
 
 RETURN = r'''
 description:
-  description: New description of the regkey pool.
+  description: The new description of the license key.
   returned: changed
   type: str
-  sample: My description
+  sample: My license for BIG-IP 1
 '''
+
+import time
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.connection import Connection
@@ -87,11 +103,11 @@ from ..module_utils.common import (
 
 class Parameters(AnsibleF5Parameters):
     api_map = {
-
+        'regKey': 'license_key'
     }
 
     api_attributes = [
-        'description'
+        'regKey', 'description'
     ]
 
     returnables = [
@@ -102,6 +118,38 @@ class Parameters(AnsibleF5Parameters):
         'description'
     ]
 
+
+class ApiParameters(Parameters):
+    pass
+
+
+class ModuleParameters(Parameters):
+    @property
+    def regkey_pool_uuid(self):
+        if self._values['regkey_pool_uuid']:
+            return self._values['regkey_pool_uuid']
+        collection = self.read_current_from_device()
+        resource = next((x for x in collection if x.name == self.regkey_pool), None)
+        if resource is None:
+            raise F5ModuleError("Could not find the specified regkey pool.")
+        self._values['regkey_pool_uuid'] = resource.id
+        return resource.id
+
+    def read_current_from_device(self):
+        uri = "/mgmt/cm/device/licensing/pool/regkey/licenses"
+
+        response = self.client.get(uri)
+
+        if response['code'] not in [200, 201, 202]:
+            raise F5ModuleError(response['contents'])
+
+        if 'items' not in response['contents']:
+            return []
+        result = [ApiParameters(params=r) for r in response['contents']['items']]
+        return result
+
+
+class Changes(Parameters):
     def to_return(self):
         result = {}
         try:
@@ -113,57 +161,11 @@ class Parameters(AnsibleF5Parameters):
         return result
 
 
-class ModuleParameters(Parameters):
-    @property
-    def uuid(self):
-        """Returns UUID of a given name
-
-        Will search for a given name and return the first one returned to us. If no name,
-        and therefore no ID, is found, will return the string "none". The string "none"
-        is returned because if we were to return the None value, it would cause the
-        license loading code to append a None string to the URI; essentially asking the
-        remote device for its collection (which we dont want and which would cause the SDK
-        to return an False error.
-
-        :return:
-        """
-        collection = self.read_current_from_device()
-        resource = next((x for x in collection if x.name == self._values['name']), None)
-        if resource:
-            return resource.id
-        else:
-            return "none"
-
-    def read_current_from_device(self):
-        uri = "/mgmt/cm/device/licensing/pool/regkey/licenses"
-
-        response = self.client.get(uri)
-
-        if response['code'] not in [200, 201, 202]:
-            raise F5ModuleError(response['contents'])
-        if 'items' not in response['contents']:
-            return []
-
-        result = [ApiParameters(params=r) for r in response['contents']['items']]
-
-        return result
-
-
-class ApiParameters(Parameters):
-    @property
-    def uuid(self):
-        return self._values['id']
-
-
-class Changes(Parameters):
+class UsableChanges(Changes):
     pass
 
 
 class ReportableChanges(Changes):
-    pass
-
-
-class UsableChanges(Changes):
     pass
 
 
@@ -220,7 +222,7 @@ class ModuleManager(object):
                 else:
                     changed[k] = change
         if changed:
-            self.changes = Changes(params=changed)
+            self.changes = UsableChanges(params=changed)
             return True
         return False
 
@@ -262,12 +264,14 @@ class ModuleManager(object):
             return self.create()
 
     def exists(self):
-        uri = "/mgmt/cm/device/licensing/pool/regkey/licenses/{0}".format(self.want.uuid)
+        uri = "/mgmt/cm/device/licensing/pool/regkey/licenses/{0}/offerings/{1}".format(
+            self.want.regkey_pool_uuid,
+            self.want.license_key
+        )
         response = self.client.get(uri)
 
         if response['code'] == 404:
             return False
-
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
 
@@ -294,29 +298,58 @@ class ModuleManager(object):
         self._set_changed_options()
         if self.module.check_mode:
             return True
+        if self.want.accept_eula is False:
+            raise F5ModuleError(
+                "To add a license, you must accept its EULA. Please see the module documentation for a link to this."
+            )
         self.create_on_device()
         return True
 
     def create_on_device(self):
         params = self.want.api_params()
         params['name'] = self.want.name
-        uri = "/mgmt/cm/device/licensing/pool/regkey/licenses/"
-
+        params['status'] = 'ACTIVATING_AUTOMATIC'
+        uri = "/mgmt/cm/device/licensing/pool/regkey/licenses/{0}/offerings".format(
+            self.want.regkey_pool_uuid,
+        )
         response = self.client.post(uri, data=params)
 
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
-        return True
+
+        for x in range(60):
+            resource = self.read_current_from_device()
+            if resource.status == 'READY':
+                break
+            elif resource.status == 'ACTIVATING_AUTOMATIC_NEED_EULA_ACCEPT':
+                params = dict(
+                    status='ACTIVATING_AUTOMATIC_EULA_ACCEPTED',
+                    eulaText=resource.eulaText
+                )
+                uri = "/mgmt/cm/device/licensing/pool/regkey/licenses/{0}/offerings/{1}".format(
+                    self.want.regkey_pool_uuid,
+                    self.want.license_key
+                )
+                response = self.client.patch(uri, data=params)
+
+                if response['code'] not in [200, 201, 202]:
+                    raise F5ModuleError(response['contents'])
+
+            elif resource.status == 'ACTIVATION_FAILED':
+                raise F5ModuleError(str(resource.message))
+
+            time.sleep(1)
 
     def update_on_device(self):
         params = self.changes.api_params()
-        uri = "/mgmt/cm/device/licensing/pool/regkey/licenses/{0}".format(self.want.uuid)
+        uri = "/mgmt/cm/device/licensing/pool/regkey/licenses/{0}/offerings/{1}".format(
+            self.want.regkey_pool_uuid,
+            self.want.license_key
+        )
         response = self.client.patch(uri, data=params)
 
         if response['code'] not in [200, 201, 202]:
             raise F5ModuleError(response['contents'])
-
-        return True
 
     def absent(self):
         if self.exists():
@@ -324,14 +357,20 @@ class ModuleManager(object):
         return False
 
     def remove_from_device(self):
-        uri = "/mgmt/cm/device/licensing/pool/regkey/licenses/{0}".format(self.want.uuid)
+        uri = "/mgmt/cm/device/licensing/pool/regkey/licenses/{0}/offerings/{1}".format(
+            self.want.regkey_pool_uuid,
+            self.want.license_key
+        )
         response = self.client.delete(uri)
-        if response['code'] in [200, 201, 202]:
-            return True
-        raise F5ModuleError(response['contents'])
+        if response['code'] not in [200, 201, 202]:
+            raise F5ModuleError(response['contents'])
+        return True
 
     def read_current_from_device(self):
-        uri = "/mgmt/cm/device/licensing/pool/regkey/licenses/{0}".format(self.want.uuid)
+        uri = "/mgmt/cm/device/licensing/pool/regkey/licenses/{0}/offerings/{1}".format(
+            self.want.regkey_pool_uuid,
+            self.want.license_key
+        )
         response = self.client.get(uri)
 
         if response['code'] not in [200, 201, 202]:
@@ -344,15 +383,20 @@ class ArgumentSpec(object):
     def __init__(self):
         self.supports_check_mode = True
         argument_spec = dict(
-            name=dict(required=True),
+            regkey_pool=dict(required=True),
+            license_key=dict(required=True, no_log=True),
             description=dict(),
+            accept_eula=dict(type='bool'),
             state=dict(
                 default='present',
-                choices=['absent', 'present']
-            )
+                choices=['present', 'absent']
+            ),
         )
         self.argument_spec = {}
         self.argument_spec.update(argument_spec)
+        self.required_if = [
+            ['state', 'present', ['accept_eula']]
+        ]
 
 
 def main():
@@ -361,6 +405,7 @@ def main():
     module = AnsibleModule(
         argument_spec=spec.argument_spec,
         supports_check_mode=spec.supports_check_mode,
+        required_if=spec.required_if,
     )
 
     try:
