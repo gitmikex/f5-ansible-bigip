@@ -71,13 +71,11 @@ EXAMPLES = r'''
 
   tasks:   
     - name: Declaration with 2 Tenants - AS3
-      atc_deploy:
+      bigip_as3_deploy:
         content: "{{ lookup('file', 'two_tenants.json') }}"
-        service_type: "as3"
 
     - name: Remove one tenant - AS3
-      atc_deploy:
-        service_type: "as3"
+      bigip_as3_deploy:
         as3_tenant: "Sample_01"
         state: absent
 '''
