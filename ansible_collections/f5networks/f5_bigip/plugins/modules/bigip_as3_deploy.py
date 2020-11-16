@@ -368,9 +368,6 @@ class ArgumentSpec(object):
         self.required_if = [
             ['state', 'present', ['content']]
         ]
-        self.required_if = [
-            ['state', 'absent', ['tenant']]
-        ]
 
 
 def main():

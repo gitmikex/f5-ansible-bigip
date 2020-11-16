@@ -189,23 +189,23 @@ EXAMPLES = r'''
     ansible_network_os: f5networks.f5_bigip.bigip
     ansible_httpapi_use_ssl: yes
 
-tasks:
-  - name: Collect BIG-IP information
-    bigip_device_info:
-      gather_subset:
-        - interfaces
-        - vlans
+  tasks:
+    - name: Collect BIG-IP information
+      bigip_device_info:
+        gather_subset:
+          - interfaces
+          - vlans
 
-  - name: Collect all BIG-IP information
-    bigip_device_info:
-      gather_subset:
-        - all
+    - name: Collect all BIG-IP information
+      bigip_device_info:
+        gather_subset:
+          - all
 
-  - name: Collect all BIG-IP information except trunks
-    bigip_device_info:
-      gather_subset:
-        - all
-        - "!trunks"
+    - name: Collect all BIG-IP information except trunks
+      bigip_device_info:
+        gather_subset:
+          - all
+          - "!trunks"
 '''
 
 RETURN = r'''
