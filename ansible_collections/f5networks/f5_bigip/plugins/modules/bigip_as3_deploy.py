@@ -35,7 +35,7 @@ options:
   tenant:
     description:
       - An AS3 tenant you wish to manage.
-      - A value of C(all) or no value when C(state) is C(absent) will remove all as3 declarations from device.
+      - A value of C(all) when C(state) is C(absent) will remove all as3 declarations from device.
     type: str
   timeout:
     description:
@@ -132,12 +132,6 @@ class ModuleParameters(Parameters):
             return json.loads(self._values['content'] or 'null')
         else:
             return self._values['content']
-
-    @property
-    def tenant(self):
-        if self._values['tenant'] in [None, 'all']:
-            return None
-        return self._values['tenant']
 
     @property
     def timeout(self):
@@ -331,10 +325,10 @@ class ModuleManager(object):
 
     def remove_from_device(self):
         interval, period = self.want.timeout
-        if self.want.tenant:
-            uri = "/mgmt/shared/appsvcs/declare/{0}?async=true".format(self.want.tenant)
-        else:
+        if self.want.tenant == 'all':
             uri = "/mgmt/shared/appsvcs/declare?async=true"
+        else:
+            uri = "/mgmt/shared/appsvcs/declare/{0}?async=true".format(self.want.tenant)
 
         response = self.client.delete(uri)
 
@@ -364,7 +358,8 @@ class ArgumentSpec(object):
         self.argument_spec = {}
         self.argument_spec.update(argument_spec)
         self.required_if = [
-            ['state', 'present', ['content']]
+            ['state', 'present', ['content']],
+            ['state', 'absent', ['tenant']]
         ]
 
 
