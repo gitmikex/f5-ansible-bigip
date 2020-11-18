@@ -59,6 +59,33 @@ Tips
    ansible_httpapi_validate_certs: "{{ provider.validate_certs }}"
 
 
+Your ideas
+----------
+
+What types of modules do you want created? If you have a use case and can sufficiently describe the behavior you want to see, open an issue and we will hammer out the details.
+
+If you've got the time, consider sending an email that introduces yourself and what you do. We love hearing about how you're using the F5_BIGIP collection for Ansible.
+
+.. note:: **This repository is a mirror, only issues submissions are accepted.**
+
+- Wojciech Wypior and the F5 team - solutionsfeedback@f5.com
+
+Copyright
+---------
+
+Copyright 2020 F5 Networks Inc.
+
+
+License
+-------
+
+GPL V3
+~~~~~~
+
+This License does not grant permission to use the trade names, trademarks, service marks, or product names of the Licensor, except as required for reasonable and customary use in describing the origin of the Work.
+
+See `License`_.
+
 .. |repoinstall| raw:: html
 
    <a href="https://docs.ansible.com/ansible/latest/user_guide/collections_using.html#installing-a-collection-from-a-git-repository" target="_blank">Git Install Docs</a>
@@ -66,3 +93,5 @@ Tips
 .. |f5_modules| raw:: html
 
    <a href="https://galaxy.ansible.com/f5networks/f5_modules" target="_blank">f5_modules</a>
+
+.. _License: https://github.com/f5devcentral/f5-ansible-bigip/blob/master/COPYING
