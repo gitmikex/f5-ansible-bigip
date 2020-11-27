@@ -1,0 +1,42 @@
+conflict: use_bigip
+conflict2: keep_version
+
+modules1:
+    - ltm
+
+modules2:
+    - ltm
+    - afm
+    - security_shared
+
+modules3:
+    - asm
+    - ltm
+    - security_shared
+
+modules4:
+    - ltm
+    - afm
+    - dns
+    - security_shared
+
+modules5:
+    - ltm
+    - websafe
+
+modules6:
+    - ltm
+    - apm
+
+modules7:
+    - ltm
+    - dns
+    - apm
+
+modules8:
+    - ltm
+    - dns
+
+modules9:
+    - afm
+    - security_shared
