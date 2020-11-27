@@ -392,8 +392,5 @@
   with_items:
     - "{{ groups['bigips'] }}"
 
-- import_tasks: issue-01241.yaml
-  tags: issue-01241
-
 - import_tasks: teardown.yaml
   tags: teardown
