@@ -42,8 +42,6 @@ options:
       - absent
       - present
     default: present
-requirements:
-  - BIG-IQ >= 5.3.0
 author:
   - Wojciech Wypior (@wojtek0806)
 '''

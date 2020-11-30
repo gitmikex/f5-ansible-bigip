@@ -1,0 +1,17 @@
+---
+
+- name: setup-managed-device - Discover device and import config
+  bigiq_device_discovery:
+    device_address: "{{ hostvars[item].ansible_host }}"
+    device_username: "{{ bigip_username }}"
+    device_password: "{{ bigip_password }}"
+    modules: ltm
+  register: result
+  with_items: "{{ groups['bigips'] }}"
+
+- name: setup-managed-device - Assert Discover a new device and import config
+  with_items: "{{ result.results }}"
+  assert:
+    that:
+      - item is changed
+      - item is success
