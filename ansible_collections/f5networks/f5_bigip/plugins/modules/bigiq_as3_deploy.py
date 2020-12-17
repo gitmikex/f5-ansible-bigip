@@ -32,12 +32,31 @@ options:
         the purpose of that filter is to format the JSON to be human-readable and this process
         includes inserting "extra characters that break JSON validators.
     type: raw
+  bigip_device:
+    description:
+      - The BIG-IP device on which to remove the declaration.
+      - Parameter required when C(state) is absent, it is otherwise ignored.
+      type: str
+  tenant:
+    description:
+      - An AS3 tenant you wish to remove.
+      - Parameter required when C(state) is absent, it is otherwise ignored.
+    type: str
   timeout:
     description:
       - The amount of time in seconds to wait for the AS3 async interface to complete its task.
       - The accepted value range is between C(10) and C(1800) seconds.
       type: int
       default: 300
+  state:
+    description:
+      - When C(state) is C(present), ensures the declaration is exists.
+      - When C(state) is C(absent), ensures that the declaration is removed.
+    type: str
+    choices:
+      - present
+      - absent
+    default: present
 notes:
   - Due to limitations of the AS3 package on BIG-IQ, the module is not idempotent.
 author:
@@ -176,9 +195,15 @@ class ModuleManager(object):
             )
 
     def exec_module(self):
+        changed = False
         result = dict()
+        state = self.want.state
 
-        changed = self.upsert()
+        if state == "present":
+            changed = self.upsert()
+        elif state == "absent":
+            changed = self.remove_on_device()
+
         result.update(dict(changed=changed))
         return result
 
@@ -188,6 +213,9 @@ class ModuleManager(object):
             return True
         result = self.upsert_on_device()
         return result
+
+    def remove(self):
+        return self.remove_on_device()
 
     def _get_errors_from_response(self, messages):
         results = []
@@ -241,19 +269,58 @@ class ModuleManager(object):
             "please increase the timeout parameter for long lived actions."
         )
 
+    def remove_on_device(self):
+        delay, period = self.want.timeout
+        payload = {
+            "class": "AS3",
+            "declaration": {
+                "class": "ADC",
+                "schemaVersion": "3.0.0",
+                "id": "fghijkl7890",
+                "label": "Sample 1",
+                "remark": "HTTP with custom persistence",
+                'target': {
+                    'address': str(self.want.bigip_device)
+                },
+                str(self.want.tenant): {
+                    'class': 'Tenant'
+                }
+            }
+        }
+
+        uri = "/mgmt/shared/appsvcs/declare?async=true"
+
+        response = self.client.post(uri, data=payload)
+        if response['code'] not in [200, 201, 202, 204, 207]:
+            raise F5ModuleError(response['contents'])
+
+        task = self.wait_for_task("/mgmt/shared/appsvcs/task/{0}".format(response['contents']['id']), delay, period)
+        if task:
+            return any(msg.get('message', None) != 'no change' for msg in task['results'])
+        return False
+
 
 class ArgumentSpec(object):
     def __init__(self):
         self.supports_check_mode = True
         argument_spec = dict(
             content=dict(type='raw'),
+            tenant=dict(),
+            bigip_device=dict(),
             timeout=dict(
                 type='int',
                 default=300
             ),
+            state=dict(
+                default='present',
+                choices=['present', 'absent']
+            ),
         )
         self.argument_spec = {}
         self.argument_spec.update(argument_spec)
+        self.required_if = [
+            ['state', 'absent', ['tenant', 'bigip_device']]
+        ]
 
 
 def main():

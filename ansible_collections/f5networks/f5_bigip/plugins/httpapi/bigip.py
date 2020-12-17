@@ -60,7 +60,8 @@ try:
     import json
 except ImportError:
     import simplejson as json
-    
+
+
 class HttpApi(HttpApiBase):
     def __init__(self, connection):
         super(HttpApi, self).__init__(connection)
